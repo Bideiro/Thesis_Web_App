@@ -1,5 +1,4 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface WebSocketData {
     frame: string;
@@ -30,7 +29,7 @@ const LiveFeed: React.FC = () => {
 
     return (
         <div className="p-4 text-center">
-            <h2 className="text-xl font-bold mb-4">Live Driver Monitoring</h2>
+            <h2 className="text-xl font-bold mb-4">Real Time Traffic Sign Detection - YOLO ResNetV250 Hybrid</h2>
             {imageSrc ? (
                 <img
                     src={imageSrc}
