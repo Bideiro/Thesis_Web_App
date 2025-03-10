@@ -5,6 +5,7 @@ import base64
 import cv2
 import numpy as np
 import websockets
+import time
 from collections import deque
 from tensorflow.keras.applications.resnet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
@@ -93,9 +94,25 @@ async def video_stream(websocket):
         _, buffer = cv2.imencode('.jpg', frame)
         frame_bytes = base64.b64encode(buffer).decode('utf-8')
 
+        # # Send JSON data to frontend
+        # message = json.dumps({"frame": frame_bytes, "behavior": predicted_behavior})
+        # await websocket.send(message)
+        
+        # Step 3: Prepare results for frontend
+        cropped_images_base64 = []
+        for cropped in cropped_images:
+            _, buffer = cv2.imencode('.jpg', cropped)
+            cropped_base64 = base64.b64encode(buffer).decode('utf-8')
+            cropped_images_base64.append(cropped_base64)
+
         # Send JSON data to frontend
-        message = json.dumps({"frame": frame_bytes, "behavior": predicted_behavior})
+        message = json.dumps({
+            "frame": frame_bytes,
+            "behavior": predicted_behavior,
+            "cropped_images": cropped_images_base64  # Include cropped images
+        })
         await websocket.send(message)
+
 
         await asyncio.sleep(0.05)  # 50ms delay for smoother streaming
 
