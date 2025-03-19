@@ -23,14 +23,13 @@ class_Name = ['placeholder for nonzero start', 'All traffic must turn left', 'Al
 ResNet_model = load_model('models/Resnet50V2(newgen_2_22_25)50e_uf20_adam.keras')
 YOLO_model = YOLO('models/YOLOv8s(TrafficSignNou)_e10_detect_11-30-24.pt')
 
-frame_buffer = deque(maxlen=20)
 resnet_frame_counter = 0  # Counter to control ResNet processing
-
+no_frame_for_det = 30
 
 
 # YOLO object detection function
 def YOLO_Predict_COut(frame):
-    results = YOLO_model.predict(source=frame, save=False, conf=0.25, show=False, stream=True)
+    results = YOLO_model.predict(source=1, save=False, conf=0.25, show=False, stream=True)
     cropped_images = []
 
     for result in results:
@@ -71,6 +70,7 @@ async def video_stream(websocket):
     cap = cv2.VideoCapture(0)
 
     last_predictions = []  # Store last valid predictions
+    prev_time = time.time()  # Track time for FPS calculation
 
     while True:
         ret, frame = cap.read()
@@ -80,24 +80,18 @@ async def video_stream(websocket):
 
         resnet_frame_counter += 1  # Increment frame counter
 
+        # Calculate FPS
+        curr_time = time.time()
+        fps = 1 / (curr_time - prev_time)
+        prev_time = curr_time
+
         # Step 1: YOLO detection on every frame
         cropped_images = YOLO_Predict_COut(frame)
 
         # Step 2: ResNet classification every 20 frames
-        if resnet_frame_counter % 20 == 0 and cropped_images:
+        if resnet_frame_counter % no_frame_for_det == 0 and cropped_images:
             last_predictions = ResNet_Phase(cropped_images)
 
-        # Step 3: Prepare results for frontend
-        predicted_behavior = ", ".join([f"{cls} ({conf:.1f}%)" for cls, conf in last_predictions])
-
-        # Encode frame to Base64 for streaming
-        _, buffer = cv2.imencode('.jpg', frame)
-        frame_bytes = base64.b64encode(buffer).decode('utf-8')
-
-        # # Send JSON data to frontend
-        # message = json.dumps({"frame": frame_bytes, "behavior": predicted_behavior})
-        # await websocket.send(message)
-        
         # Step 3: Prepare results for frontend
         cropped_images_base64 = []
         for cropped in cropped_images:
@@ -105,17 +99,21 @@ async def video_stream(websocket):
             cropped_base64 = base64.b64encode(buffer).decode('utf-8')
             cropped_images_base64.append(cropped_base64)
 
+        # Encode frame to Base64 for streaming
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame_bytes = base64.b64encode(buffer).decode('utf-8')
+
         # Send JSON data to frontend
         message = json.dumps({
             "frame": frame_bytes,
-            "behavior": predicted_behavior,
-            "cropped_images": cropped_images_base64  # Include cropped images
+            "behavior": ", ".join([f"{cls} ({conf:.1f}%)" for cls, conf in last_predictions]),
+            "cropped_images": cropped_images_base64,
+            "fps": round(fps, 2)  # Include FPS rounded to 2 decimal places
         })
         await websocket.send(message)
 
-
         await asyncio.sleep(0.05)  # 50ms delay for smoother streaming
-
+        
 # WebSocket server
 async def main():
     async with websockets.serve(video_stream, "0.0.0.0", 8765):
@@ -130,4 +128,5 @@ async def main():
         await asyncio.Future()  # Keep server running
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    pass
+    # asyncio.run(main())
