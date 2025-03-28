@@ -3,7 +3,6 @@ import base64
 import threading
 import cv2
 import numpy as np
-from datetime import datetime
 import websockets
 import time
 import queue
@@ -63,9 +62,7 @@ resnet_queue = queue.Queue()
 resnet_running = threading.Event()
 fps_history = deque(maxlen=30)
 
-resnet_results = []
-stored_images = deque(maxlen=10)# Stores latest ResNet predictions
-stored_results = deque(maxlen=10)
+resnet_results = []  # Stores latest ResNet predictions
 
 def encode_to_base64(image):
     _, buffer = cv2.imencode('.jpg', image)
@@ -73,8 +70,6 @@ def encode_to_base64(image):
 
 # ResNet classification function
 def ResNet_Phase():
-    global stored_images
-    global stored_results
     global resnet_results
     while True:
         cropped_images = resnet_queue.get()
@@ -91,15 +86,16 @@ def ResNet_Phase():
 
             predictions = ResNet_model(array, training=False).numpy()
             class_id = predictions.argmax()
-            confidence =round((predictions.max() * 100), 2)
+            confidence = predictions.max() * 100
             class_name = class_Name[class_id]
             
-            results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) -> {confidence}")
-            dt = datetime.now()
-            datetime_now = dt.strftime(' %a - %b %d @ %I:%M %p')
-            stored_results.append(f"Sign: {class_name} @ {confidence}% Time: {datetime_now}")
-            stored_images.append(encode_to_base64(cropped))
-            
+            results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) -> {round(confidence, 2)}")
+
+            # results.append({
+            #     "bounding_box": i + 1,
+            #     "prediction": class_name,
+            #     "confidence": round(confidence, 2)
+            # })
 
         resnet_results = results  # Store latest results
         resnet_queue.task_done()
@@ -109,22 +105,10 @@ async def ResNet_WebSocket(websocket):
     global resnet_results
     while True:
         if resnet_results:
-            message = json.dumps({"resnet_predictions": resnet_results})
+            message = json.dumps({"resnet_predictions": str(resnet_results)})
             await websocket.send(message)
             resnet_results = []  # Clear after sending
         await asyncio.sleep(0.01)  # Send updates every second
-
-async def Send_logs(websocket):
-    global stored_results
-    global stored_images
-    while True:
-        if stored_results and stored_images:
-            message = json.dumps({
-            "logged_image": list(stored_images),
-            "results": list(stored_results)
-            })
-            await websocket.send(message)
-        await asyncio.sleep(15)
 
 # Asynchronous video streaming
 async def Show_Cam(websocket):
@@ -160,7 +144,6 @@ async def Show_Cam(websocket):
         # Queue the frame for ResNet processing if ResNet is not busy
         if not resnet_running.is_set():
             resnet_queue.put(cropped_images.copy())
-            
 
         # Calculate and display FPS
         fps = 1 / (time.time() - start_time)
@@ -192,7 +175,7 @@ async def Show_Cam(websocket):
 async def main():
     server1 = websockets.serve(Show_Cam, "0.0.0.0", 8765)
     server2 = websockets.serve(ResNet_WebSocket, "0.0.0.0", 8766)
-    server3 = websockets.serve(Send_logs, "0.0.0.0", 8767)
+
     print("✅ WebSocket server started on ws://0.0.0.0:8765 for video streaming")
     print("✅ WebSocket server started on ws://0.0.0.0:8766 for ResNet results")
 
@@ -204,8 +187,43 @@ async def main():
         print("         Try npm install on the web folder!!! ")
         print(f"⚠️ Failed to start React frontend: {e}")
         
-    await asyncio.gather(server1, server2, server3)
+    await asyncio.gather(server1, server2)
     await asyncio.Future()  # Prevents the event loop from exiting
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
+
+# def ResNet_Phase():
+#     while True:
+#         frame = resnet_queue.get()
+#         if frame is None:
+#             break
+
+#         resnet_running.set()
+
+#         results = YOLO_model.predict(frame, conf=0.70, verbose=False)
+#         cropped_images = []
+
+#         # for result in results:
+#         #     for box in result.boxes.xyxy:
+#         #         x1, y1, x2, y2 = map(int, box[:4])
+#         #         cropped = frame[y1:y2, x1:x2]
+#         #         if cropped.size > 0:
+#         #             cropped_images.append(cropped)
+
+#         for result in results:
+#             for i, box in enumerate(result.boxes.xyxy):
+#                 x1, y1, x2, y2 = map(int, box[:4])
+#                 cropped = frame[y1:y2, x1:x2]
+#                 if cropped.size > 0:
+#                     resized = cv2.resize(cropped, (224, 224))
+#                     array = np.expand_dims(resized, axis=0)
+#                     array = preprocess_input(array)
+
+#                     predictions = ResNet_model(array, training=False).numpy()
+#                     class_id = predictions.argmax()
+#                     confidence = predictions.max() * 100
+#                     class_name = class_Name[class_id]
+
+#                     print(f'Bounding Box {i + 1} [{x1}, {y1}, {x2}, {y2}]: Predicted - {class_name} ({confidence:.2f}%)')

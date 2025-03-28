@@ -15,7 +15,7 @@ interface ResNetData {
 const Inference: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [croppedImages, setCroppedImages] = useState<string[]>([]);
-    const [fps, setFps] = useState<number | null>(0); // Store FPS
+    const [fps, setFps] = useState<number | null>(0);
     const [resnetResults, setResnetResults] = useState<string>("Waiting for detection...");
 
     useEffect(() => {
@@ -37,14 +37,13 @@ const Inference: React.FC = () => {
         const resnetSocket = new WebSocket("ws://localhost:8766");
         resnetSocket.onmessage = (event: MessageEvent) => {
             try {
-                const data = JSON.parse(event.data);
-                setResnetResults(data.resnet_predictions);
+                const resnetpred: ResNetData = JSON.parse(event.data);
+                setResnetResults(resnetpred.resnet_predictions);
             } catch (error) {
                 console.error("Error parsing ResNet WebSocket message:", error);
             }
         };
         resnetSocket.onclose = () => console.log("ResNet WebSocket closed");
-
 
         // Proper Closing
         return () => {
@@ -60,16 +59,16 @@ const Inference: React.FC = () => {
 
             {/* logic for null values */}
             {imageSrc ? (
-                <img src={imageSrc} alt="Live Feed" className="img-fluid border rounded" />
+                <img src={imageSrc} alt="Live Feed" className="img-fluid border border-primary border-5 rounded" />
             ) : (
                 <p className="connecting">Connecting to camera...</p>
             )}
-
-            <h3 className="behavior">{resnetResults}</h3>
-
-            <div className="cropped-images">
+            <div className="border border-3">
                 {croppedImages.map((img, index) => (
-                    <img key={index} src={`data:image/jpeg;base64,${img}`} alt={`Detected ${index}`} className="border rounded" />
+                    <div className="border rounded">
+                        <h2>{resnetResults[index]}</h2>
+                        <img key={index} src={`data:image/jpeg;base64,${img}`} alt={`Detected ${index}`} />
+                    </div>
                 ))}
             </div>
         </div>
