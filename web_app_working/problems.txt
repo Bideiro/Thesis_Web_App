@@ -1,0 +1,11 @@
+
+Reminders -
+
+    !!! IMPORTANT !!!
+    Always copy adn apst the liveffed.txt file to the livefeed.tsx file!
+
+
+Problems:
+
+    - Output has low fps
+    - Output lags every 1 secs

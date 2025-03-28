@@ -1,4 +1,5 @@
 import tensorflow as tf
+from datetime import date
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.applications import ResNet50V2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Flatten
@@ -10,7 +11,17 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
 # FOR UBUNTU IN DEI COMP 
-Dataset_home_dir = "/mnt/c/Users/dei/Documents/Programming/Datasets/Combined_Dataset_ResNet" 
+Dataset_home_dir = "/mnt/c/Users/dei/Documents/Programming/Datasets/Combined_Dataset_ResNet"
+
+Model_epoch = 50
+freeze_layers = True
+
+
+if freeze_layers:
+    Model_title = "Resnet50V2(newgen_" + str(date.today()) + ")_" + Model_epoch + "e_uf20_adam"
+else:
+    Model_title = "Resnet50V2(newgen_" + str(date.today()) + ")_" + Model_epoch + "e_adam"
+
 
 
 train_dir =  Dataset_home_dir + "/train"  # Replace with your dataset path
@@ -49,12 +60,13 @@ val_dataset = val_datagen.flow_from_directory(
 base_model = ResNet50V2(weights="imagenet", include_top=False, input_shape=(img_size, img_size, 3))
 
 # Unfreeze the last few layers of ResNetV2 for fine-tuning
-for layer in base_model.layers[-20:]:  # Unfreezing last 20 layers
-    layer.trainable = True
-
-# # Freeze the base model
-# for layer in base_model.layers:
-#     layer.trainable = False
+if freeze_layers:
+    for layer in base_model.layers[-20:]:  # Unfreezing last 20 layers
+        layer.trainable = True
+else:
+    # Freeze the base model
+    for layer in base_model.layers:
+        layer.trainable = False
 
 # Add custom layers for classification
 x = base_model.output
@@ -100,7 +112,7 @@ if gpus:
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
-    epochs=50
+    epochs=Model_epoch
 )
 
-model.save('Resnet50V2(newgen_2_22_25)100e_uf20_adam.keras')
+model.save(Model_title)

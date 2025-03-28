@@ -169,6 +169,13 @@ def Yolo_to_ResNetV2(yaml_path, yolo_annotations_dir, images_dir, output_dir):
             os.rmdir(class_output_dir)
 
 # From Orig YOLO to YOLO Main
+# def list_subdirectories(folder_path):
+#     try:
+#         folder = Path(folder_path)
+#         subdirectories = [d.name for d in folder.iterdir() if d.is_dir()]
+#         return subdirectories
+#     except FileNotFoundError:
+#         return "Folder not found. Please check the path."
 
 def list_subdirectories(folder_path):
     try:
@@ -179,6 +186,15 @@ def list_subdirectories(folder_path):
         print("Error: Folder not found.")
         return []
 
+def get_all_files(dir_path):
+    """Helper function to retrieve all files in a directory and its subdirectories."""
+    file_paths = []
+    for dirpath, _, filenames in os.walk(dir_path):
+        for filename in filenames:
+            full_path = os.path.join(dirpath, filename)
+            file_paths.append(full_path)
+    print(f"Files in {dir_path}: {file_paths}")  # Debugging line
+    return file_paths
 
 def copy_matching_files(dir1, dir2, output_dir):
     # Ensure the output directory exists
@@ -186,11 +202,8 @@ def copy_matching_files(dir1, dir2, output_dir):
         os.makedirs(output_dir)
 
     # Traverse both directories and get filenames
-    dir1_files = {os.path.basename(f) for f in get_all_files(dir1)}
+    dir1_files = [os.path.basename(f) for f in get_all_files(dir1)]
     dir2_files = {os.path.basename(f) for f in get_all_files(dir2)}
-
-    print(f"Files in dir1: {dir1_files}")  # Debugging line
-    print(f"Files in dir2: {dir2_files}")  # Debugging line
 
     # Compare and copy matching files
     for dirpath, _, filenames in os.walk(dir2):
@@ -210,18 +223,6 @@ def copy_matching_files(dir1, dir2, output_dir):
                 file_in_dir2 = os.path.join(dirpath, filename)
                 shutil.copy(file_in_dir2, output_path)
                 print(f"Copied {filename} to {output_path}")
-
-
-def get_all_files(dir_path):
-    """Helper function to retrieve all files in a directory and its subdirectories."""
-    file_paths = []
-    for dirpath, _, filenames in os.walk(dir_path):
-        for filename in filenames:
-            full_path = os.path.join(dirpath, filename)
-            file_paths.append(full_path)
-    print(f"Files in {dir_path}: {file_paths}")  # Debugging line
-    return file_paths
-
 
 def delete_empty_dirs(directory):
     """Recursively delete empty directories."""
@@ -303,6 +304,7 @@ def YOLO_to_Resnet(dataset_dir, output_dir):
         Yolo_to_ResNetV2(yaml_path, dataset_dir + "/train/labels", dataset_dir + "/train/images", output_dir + "/train")
         
         Yolo_to_ResNetV2(yaml_path, dataset_dir + "/valid/labels", dataset_dir + "/valid/images", output_dir+ "/valid")
+
         
     except Exception as e:
         print(e)
@@ -320,33 +322,16 @@ def YOLO_to_Transformed_YOLO(dataset_dir, resnet_dir, output_dir, verbose):
             copy_matching_files(dataset_dir + i + '/images', resnet_dir + i + x, output_dir + i + x + '/images')
             copy_matching_files(dataset_dir + i + '/labels', resnet_dir + i + x, output_dir + i + x + '/labels')
 
+def Transform_Resnet_To_Yolo(resnet_dir, output):
+    
+    copy_matching_files()
+    pass
 
 # Bulk actions
 def bulk_action():
     
-    dataset_dir = "C:/Users/dei/Documents/Programming/Datasets/Dataset Archive/Road Sign Detection.v1i.yolov8"
+    YOLO_to_Resnet(dataset_dir= "D:/Documents/YOLOM(Backup9)/YOLOM(Backup9)", output_dir= "D:/Documents/YOLOM(Backup9)")
     
-    output_dir = "C:/Users/dei/Documents/Programming/Datasets/Transformed_Datasets_YOLO/Road Sign Detection.v1i.yolov8"
-    
-    YOLO_to_Transformed_YOLO(dataset_dir, output_dir)
-    
-    dataset_dir = "C:/Users/dei/Documents/Programming/Datasets/Dataset Archive/traffic signs.v2i.yolov8"
-    
-    output_dir = "C:/Users/dei/Documents/Programming/Datasets/Transformed_Datasets_YOLO/traffic signs.v2i.yolov8"
-    
-    YOLO_to_Transformed_YOLO(dataset_dir, output_dir)
-    
-    dataset_dir = "C:/Users/dei/Documents/Programming/Datasets/Dataset Archive/TrafficSignDetection.v11-doarsemnelebune.yolov8"
-    
-    output_dir = "C:/Users/dei/Documents/Programming/Datasets/Transformed_Datasets_YOLO/TrafficSignDetection.v11-doarsemnelebune.yolov8"
-    
-    YOLO_to_Transformed_YOLO(dataset_dir, output_dir)
-    
-    dataset_dir = "C:/Users/dei/Documents/Programming/Datasets/Dataset Archive/TrafficSignNou.v2i.yolov8"
-    
-    output_dir = "C:/Users/dei/Documents/Programming/Datasets/Transformed_Datasets_YOLO/TrafficSignNou.v2i.yolov8"
-    
-    YOLO_to_Transformed_YOLO(dataset_dir, output_dir)
     
 def bulk_action_YOLO():
     
@@ -382,14 +367,6 @@ def bulk_action_YOLO():
     
     YOLO_to_Transformed_YOLO(dataset_dir, resnet_dir, output_dir, 0)
     
-    
-def list_subdirectories(folder_path):
-    try:
-        folder = Path(folder_path)
-        subdirectories = [d.name for d in folder.iterdir() if d.is_dir()]
-        return subdirectories
-    except FileNotFoundError:
-        return "Folder not found. Please check the path."
     
 if __name__ == "__main__":
     
