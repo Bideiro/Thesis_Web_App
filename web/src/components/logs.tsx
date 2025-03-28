@@ -62,32 +62,6 @@ const Logs: React.FC = () => {
             </div>
         </div>
     );
-
-    // return (
-    //     <div className="container-fluid">
-    //         <p className="display-1 text-center" >Log List</p>
-    //         <p className='lead text-center'> A list that contains all detected signs, upto 10 signs updates every 15 seconds.</p>
-    //         <div className="container text-center">
-    //             <div className='row row-cols-2'>
-    //                 {logged_image.map((img, index) => (
-
-    //                     <div>
-    //                         <div className='col' key={index}>
-    //                             <img src={`data:image/jpeg;base64,${img}`} alt={`Logged Image ${index}`} />
-    //                             <p>Logged at: {results[index]}</p>
-    //                         </div>
-    //                         {/* <div className='col' key={index}>
-    //                             <p>Logged at: {results[index]}</p>
-    //                         </div> */}
-    //                     </div>
-    //                     // <div className='col' key={index}>
-    //                     //     <img src={`data:image/jpeg;base64,${img}`} alt={`Logged Image ${index}`} />
-    //                     // </div>
-    //                 ))}
-    //             </div>
-    //         </div>
-    //     </div>
-    // )
-}
+};
 
 export default Logs;

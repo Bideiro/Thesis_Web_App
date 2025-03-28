@@ -94,7 +94,7 @@ def ResNet_Phase():
             confidence =round((predictions.max() * 100), 2)
             class_name = class_Name[class_id]
             
-            results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) -> {confidence}")
+            results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%")
             dt = datetime.now()
             datetime_now = dt.strftime(' %a - %b %d @ %I:%M %p')
             stored_results.append(f"Sign: {class_name} @ {confidence}% Time: {datetime_now}")

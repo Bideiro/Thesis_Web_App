@@ -54,25 +54,40 @@ const Inference: React.FC = () => {
 
     return (
         <div className="container-fluid">
-            <p className="display-1 text-center "> LIVE CAMERA FEED </p>
+            <p className="display-1 text-center">LIVE CAMERA FEED</p>
             <p className="h6 text-left">🟢 FPS: {fps}</p>
-
-            {/* logic for null values */}
+    
+            {/* Live Camera Feed */}
             {imageSrc ? (
                 <img src={imageSrc} alt="Live Feed" className="img-fluid border border-primary border-5 rounded" />
             ) : (
                 <p className="connecting">Connecting to camera...</p>
             )}
-            <div className="border border-3">
-                {croppedImages.map((img, index) => (
-                    <div className="border rounded">
-                        <h2>{resnetResults[index]}</h2>
-                        <img key={index} src={`data:image/jpeg;base64,${img}`} alt={`Detected ${index}`} />
-                    </div>
-                ))}
+    
+            {/* Cropped Images & ResNet Results (Responsive) */}
+            <div className="border border-3 mt-3">
+                <div className="row d-flex justify-content-center">
+                    {croppedImages.map((img, index) => (
+                        <div className="col-12 col-md-6 d-flex align-items-center border rounded p-2" key={index}>
+                            {/* Image on the Left */}
+                            <div className="col-auto">
+                                <img 
+                                    src={`data:image/jpeg;base64,${img}`} 
+                                    alt={`Detected ${index}`} 
+                                    className="img-fluid rounded"
+                                    style={{ maxWidth: "150px", height: "auto" }}
+                                />
+                            </div>
+    
+                            {/* Text on the Right */}
+                            <div className="col text-start ms-3">
+                                <p className="fw-bold">{resnetResults[index]}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
-
     );
 };
 export default Inference;
