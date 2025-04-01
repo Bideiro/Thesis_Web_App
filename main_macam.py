@@ -204,7 +204,7 @@ async def main():
     print("✅ WebSocket server started on ws://0.0.0.0:8767 for ResNet results")
     try:
         print("🚀 Starting React frontend...")
-        subprocess.Popen(["npm", "run", "dev"], cwd=_Web, shell=True)
+        subprocess.Popen("npm run dev", cwd=_Web, shell=True)
 
     except Exception as e:
         print("!!!IMPORTANT!!")
