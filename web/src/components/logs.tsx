@@ -12,7 +12,7 @@ const Logs: React.FC = () => {
 
     useEffect(() => {
         // Third Websocket
-        const logs_data_WS = new WebSocket("ws://localhost:8767");
+        const logs_data_WS = new WebSocket(`ws://${window.location.hostname}:8767`);
         logs_data_WS.onmessage = (event: MessageEvent) => {
             try {
                 const data: logs = JSON.parse(event.data);

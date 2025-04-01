@@ -52,8 +52,8 @@ class_Name = [
 
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(25E)(Unfrozen)03-09-25.keras')
-YOLO_model = YOLO('models/YOLOV8s(10E)3-28-25.pt')
+ResNet_model = load_model('models/Resnet50V2(newgen_2025-04-01)_50e_adam.keras')
+YOLO_model = YOLO('models/YOLOV8s(25E)03-28-25.pt')
 
 resnet_frame_counter = 0  # Counter to control ResNet processing
 no_frame_for_det = 30
@@ -86,12 +86,17 @@ def ResNet_Phase():
 
         for i, cropped in enumerate(cropped_images):
             resized = cv2.resize(cropped, (224, 224))
+            cv2.imshow(f"img now {i}",resized)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
             array = np.expand_dims(resized, axis=0)
             array = preprocess_input(array)
 
             predictions = ResNet_model(array, training=False).numpy()
             class_id = predictions.argmax()
             confidence =round((predictions.max() * 100), 2)
+            # print(predictions)
+            # print(f"\nClass Name: {class_Name[class_id]}")
             class_name = class_Name[class_id]
             
             results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%")
@@ -145,7 +150,7 @@ async def Show_Cam(websocket):
             break
         
         # Run YOLO on the frame to get bounding boxes
-        results = YOLO_model.predict(frame, conf=0.70, verbose=False)
+        results = YOLO_model.predict(frame, conf=0.70, verbose=False, stream=True)
         cropped_images = []
 
         for result in results:
@@ -190,15 +195,17 @@ async def Show_Cam(websocket):
 
 # WebSocket server
 async def main():
+
     server1 = websockets.serve(Show_Cam, "0.0.0.0", 8765)
     server2 = websockets.serve(ResNet_WebSocket, "0.0.0.0", 8766)
     server3 = websockets.serve(Send_logs, "0.0.0.0", 8767)
     print("✅ WebSocket server started on ws://0.0.0.0:8765 for video streaming")
     print("✅ WebSocket server started on ws://0.0.0.0:8766 for ResNet results")
-
+    print("✅ WebSocket server started on ws://0.0.0.0:8767 for ResNet results")
     try:
         print("🚀 Starting React frontend...")
         subprocess.Popen(["npm", "run", "dev"], cwd=_Web, shell=True)
+
     except Exception as e:
         print("!!!IMPORTANT!!")
         print("         Try npm install on the web folder!!! ")

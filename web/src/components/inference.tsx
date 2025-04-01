@@ -20,7 +20,7 @@ const Inference: React.FC = () => {
 
     useEffect(() => {
         // First Websocket
-        const socket = new WebSocket("ws://localhost:8765");
+        const socket = new WebSocket(`ws://${window.location.hostname}:8765`);
         socket.onmessage = (event: MessageEvent) => {
             try {
                 const data: WebSocketData = JSON.parse(event.data);
@@ -34,7 +34,7 @@ const Inference: React.FC = () => {
         socket.onclose = () => console.log("WebSocket connection closed");
 
         // Second Websocket
-        const resnetSocket = new WebSocket("ws://localhost:8766");
+        const resnetSocket = new WebSocket(`ws://${window.location.hostname}:8766`);
         resnetSocket.onmessage = (event: MessageEvent) => {
             try {
                 const resnetpred: ResNetData = JSON.parse(event.data);

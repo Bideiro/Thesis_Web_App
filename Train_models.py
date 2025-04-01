@@ -32,12 +32,12 @@ pchoice = 0
 # Naming convention for Models
 dataset_name = ""
 # Epoch numbers
-Model_epoch = 10
+Model_epoch = 50
 
 # YOLO Yaml File
 Yolo_Yaml = "D:/Documents/YOLOM(Backup9)/YOLOM(Backup9)/data.yaml"
 # Freeze Resnet Layers?
-freeze_layers = False
+freeze_layers = True
 
 # Dataset paths for Resnet
 
@@ -131,11 +131,7 @@ def Resnet_train():
 
     # Compile the model
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy','recall','precision'])
-
-    # Calculate steps per epoch
-    # steps_per_epoch = train_dataset.samples // train_dataset.batch_size
-    # validation_steps = val_dataset.samples // val_dataset.batch_size
-
+    
     # Enabling memory growth
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
