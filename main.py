@@ -52,8 +52,8 @@ class_Name = [
 
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(newgen_2025-04-01)_50e_adam.keras')
-YOLO_model = YOLO('models/YOLOV8s(25E)03-28-25.pt')
+ResNet_model = load_model('models/Resnet50V2(15E+10FT)04-01-2025.keras')
+YOLO_model = YOLO('models/YOLOV8s(75E)(YOLOM_4_1_25)04-02-2025.pt')
 
 resnet_frame_counter = 0  # Counter to control ResNet processing
 no_frame_for_det = 30
@@ -150,7 +150,7 @@ async def Show_Cam(websocket):
             break
         
         # Run YOLO on the frame to get bounding boxes
-        results = YOLO_model.predict(frame, conf=0.70, verbose=False, stream=True)
+        results = YOLO_model.predict(frame, verbose=False, stream=True)
         cropped_images = []
 
         for result in results:
