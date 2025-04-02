@@ -86,9 +86,9 @@ def ResNet_Phase():
 
         for i, cropped in enumerate(cropped_images):
             resized = cv2.resize(cropped, (224, 224))
-            cv2.imshow(f"img now {i}",resized)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
+            # cv2.imshow(f"img now {i}",resized)
+            # cv2.waitKey(0)
+            # cv2.destroyAllWindows()
             array = np.expand_dims(resized, axis=0)
             array = preprocess_input(array)
 
@@ -133,7 +133,9 @@ async def Send_logs(websocket):
 
 # Asynchronous video streaming
 async def Show_Cam(websocket):
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
+    
+    cap.set(cv2.CAP_PROP_FPS, 30)
 
     if not cap.isOpened():
         print("Error: Could not open webcam.")
@@ -150,7 +152,7 @@ async def Show_Cam(websocket):
             break
         
         # Run YOLO on the frame to get bounding boxes
-        results = YOLO_model.predict(frame, verbose=False, stream=True)
+        results = YOLO_model.predict(frame, conf= 0.7, verbose=False, stream=True)
         cropped_images = []
 
         for result in results:
