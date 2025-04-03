@@ -15,7 +15,7 @@ class Worker(QThread):
             # sending the shitz
             self.update_signal.emit(f"Processing... {i + 1}")
 
-# Step 5: Create the Main GUI Application
+# Step 5: Create the Main GUI Applicationdsadas
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
