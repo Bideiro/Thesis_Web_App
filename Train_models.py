@@ -30,12 +30,12 @@ pchoice = 0
 
 
 # Naming convention for Models
-dataset_name = ""
+dataset_name = "CCTSDB-20e_tt100k-10e"
 # Epoch numbers
-Model_epoch = 50
+Model_epoch = 10
 
 # YOLO Yaml File
-Yolo_Yaml = "D:/Documents/YOLOM(Backup9)/YOLOM(Backup9)/data.yaml"
+Yolo_Yaml = "d:/Documents/ZZ_Datasets/tt100k_YOLO/data.yaml"
 # Freeze Resnet Layers?
 freeze_layers = True
 
@@ -49,16 +49,54 @@ Dataset_home_dir = "/mnt/d/Documents/Z_Cleaned_Dataset_v2"
 def Yolo_train():
     Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_"+ str(date.today())
     # Create a new YOLO model from scratch
-    model = YOLO("yolov8s.pt")
-    # model = YOLO("Completed Models/YOLOv5s(TrafficSignNou)_e10_detect_12-2-24/weights/best.pt")
+    # model = YOLO("yolov8s.pt")
+    model = YOLO("runs/detect/YOLOv8s(tt100k-10e)_e10_2025-04-08/weights/best.pt")
 
     # Display model information (optional)
     model.info()
 
     # # Train the model
-    model = model.train(data=Yolo_Yaml, epochs=Model_epoch, device='0', save_period= 1, name=Model_name)
+    model = model.train(data=Yolo_Yaml, epochs=Model_epoch, device='0',
+                        save_period= 1, name=Model_name, single_cls = True,
+                        cache= 'disk')
     
-    model.export(format="onnx")
+    # model = model.train(
+    #     name="custom_10",
+    #     data=Yolo_Yaml,
+    #     epochs=Model_epoch,
+    #     device='0',
+    #     save_period= 1,
+    #     cache='disk',
+    #     single_cls = True,
+    #     save= True,
+    #     # freeze = 20,
+    #     imgsz= 720,
+    #     lr0= 0.01173,
+    #     lrf= 0.00536,
+    #     momentum= 0.91939,
+    #     weight_decay= 0.00034,
+    #     warmup_epochs= 3.23214,
+    #     warmup_momentum= 0.75301,
+    #     box= 7.06289,
+    #     cls= 0.53039,
+    #     dfl= 1.64606,
+    #     hsv_h= 0.01452,
+    #     hsv_s= 0.76116,
+    #     hsv_v= 0.23249,
+    #     degrees= 0.0,
+    #     translate= 0.07547,
+    #     scale= 0.36605,
+    #     shear= 0.0,
+    #     perspective= 0.0,
+    #     flipud= 0.0,
+    #     fliplr= 0.62907,
+    #     bgr= 0.0,
+    #     mosaic= 1,
+    #     mixup= 0.0,
+    #     copy_paste= 0.0
+    # )
+
+    # model.export(format="pt")
     
 def Resnet_train():
     if not freeze_layers:
@@ -154,13 +192,44 @@ def Resnet_train():
 
     model.save(Model_title)
     
+def Yolo_cont():
+    # insert path to last.pt to continue
+    model = YOLO("runs/detect/custom_103/weights/last.pt")
+    # results =  model.train(resume= True)
+    # results = model.tune(resume=True, data= Yolo_Yaml)
+    results = model.tune(resume=True)
+    model.export(format="pt")
+    
+def Yolo_tune():
+    
+    model = YOLO("yolov8s.pt")
+    
+    model.tune(name="Tune_10e_10i_SGD_imsz640",
+                data=Yolo_Yaml,
+                epochs= 10,
+                iterations= 10,
+                optimizer= 'SGD',
+                imgsz= 640,
+                plots=True,
+                save=True,
+                cache='disk',
+                )
+    
 if __name__ == "__main__":
     
     choice = ""
     
     while True:
         if not choice == '/n':
-            choice = input("Do what? [0 - Train Both, 1 - YOLO ONLY, 2 - ResNet50v2 ONLY, 3 - Check GPU's]")
+            choice = input("""
+                        Do what?
+                        0 - Train Both
+                        1 - Train a YOLO Model
+                        2 - Train a ResNet50v2 Model
+                        3 - Check GPU's
+                        4 - Continue last YOLO Training
+                        5 - Tune a YOLO Model 
+                        """)
         
         if choice == '/n':
             choice = pchoice
@@ -177,5 +246,9 @@ if __name__ == "__main__":
         elif choice == '3':
             print('WIP')
             pass
+        elif choice == '4':
+            Yolo_cont()
+        elif choice == '5':
+            Yolo_tune()
         else:
             print("invalid choice!")

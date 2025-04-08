@@ -54,7 +54,7 @@ class_Name = [
 
 # Load models
 ResNet_model = load_model('models/Resnet50V2(15E+10FT)04-01-2025.keras')
-YOLO_model = YOLO('models/YOLOV8s(75E)(YOLOM_4_1_25)04-02-2025.pt')
+YOLO_model = YOLO('runs/detect/YOLOv8s(CCTSDB-20e_tt100k-20e)_e10_2025-04-07/weights/best.pt')
 
 resnet_frame_counter = 0  # Counter to control ResNet processing
 no_frame_for_det = 30
@@ -87,9 +87,6 @@ def ResNet_Phase():
 
         for i, cropped in enumerate(cropped_images):
             resized = cv2.resize(cropped, (224, 224))
-            # cv2.imshow(f"img now {i}",resized)
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
             array = np.expand_dims(resized, axis=0)
             array = preprocess_input(array)
 
@@ -135,8 +132,6 @@ async def Send_logs(websocket):
 # Asynchronous video streaming
 async def Show_Cam(websocket):
     cap = cv2.VideoCapture(1)
-    
-    cap.set(cv2.CAP_PROP_FPS, 30)
 
     if not cap.isOpened():
         print("Error: Could not open webcam.")
@@ -153,7 +148,7 @@ async def Show_Cam(websocket):
             break
         
         # Run YOLO on the frame to get bounding boxes
-        results = YOLO_model.predict(frame, conf= 0.7, verbose=False, stream=True)
+        results = YOLO_model.predict(frame, verbose=False, stream=True, conf = 0.65)
         cropped_images = []
 
         for result in results:

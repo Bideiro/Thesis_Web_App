@@ -68,7 +68,7 @@ const Inference: React.FC = () => {
             <div className="border border-3 mt-3">
                 <div className="row d-flex justify-content-center">
                     {croppedImages.map((img, index) => (
-                        <div className="col-12 col-md-6 d-flex align-items-center border rounded p-2" key={index}>
+                        <div className="row-12 row-md-6 d-flex align-items-center border rounded p-2" key={index}>
                             {/* Image on the Left */}
                             <div className="col-auto">
                                 <img 
