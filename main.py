@@ -54,7 +54,7 @@ class_Name = [
 
 # Load models
 ResNet_model = load_model('models/Resnet50V2(15E+10FT)04-01-2025.keras')
-YOLO_model = YOLO('runs/detect/YOLOv8s(CCTSDB-20e_tt100k-20e)_e10_2025-04-07/weights/best.pt')
+YOLO_model = YOLO('runs/detect/YOLOv8s(CCTSDB-20e_tt100k-20e)_e40_2025-04-07/weights/best.pt')
 
 resnet_frame_counter = 0  # Counter to control ResNet processing
 no_frame_for_det = 30
@@ -62,7 +62,10 @@ no_frame_for_det = 30
 
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
+
 fps_history = deque(maxlen=30)
+gl_cropped_images = []
+frame_bytes = None
 
 resnet_results = []
 stored_images = deque(maxlen=10)# Stores latest ResNet predictions
@@ -129,88 +132,87 @@ async def Send_logs(websocket):
             await websocket.send(message)
         await asyncio.sleep(15)
 
-# Asynchronous video streaming
+# Sending Cam Frames
 async def Show_Cam(websocket):
+    global fps_history, gl_cropped_images, frame_bytes
+
+    while frame_bytes is None:
+        await asyncio.sleep(0.1)
+
+    while True:
+        avg_fps = sum(fps_history) / len(fps_history) if fps_history else 0.0
+
+        message = json.dumps({
+            "frame": frame_bytes,
+            "cropped_images": gl_cropped_images,
+            "fps": round(avg_fps, 2)
+        })
+        await websocket.send(message)
+        await asyncio.sleep(0.05)
+
+async def main():
     cap = cv2.VideoCapture(1)
 
     if not cap.isOpened():
         print("Error: Could not open webcam.")
-        exit()
-        
+        return
+    
+    # Start ResNet thread
     resnet_thread = threading.Thread(target=ResNet_Phase, daemon=True)
     resnet_thread.start()
 
-    while True:
-        start_time = time.time()
-        ret, frame = cap.read()
-        if not ret:
-            print("Error: Failed to capture frame.")
-            break
-        
-        # Run YOLO on the frame to get bounding boxes
-        results = YOLO_model.predict(frame, verbose=False, stream=True, conf = 0.65)
-        cropped_images = []
+    # Start WebSocket servers
+    server1 = await websockets.serve(Show_Cam, "0.0.0.0", 8765)
+    server2 = await websockets.serve(ResNet_WebSocket, "0.0.0.0", 8766)
+    server3 = await websockets.serve(Send_logs, "0.0.0.0", 8767)
 
-        for result in results:
-            for box in result.boxes.xyxy:
-                x1, y1, x2, y2 = map(int, box[:4])
-                cropped = frame[y1:y2, x1:x2]
-                # Draw bounding boxes
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                if cropped.size > 0:
-                    cropped_images.append(cropped)
-
-        # Queue the frame for ResNet processing if ResNet is not busy
-        if not resnet_running.is_set():
-            resnet_queue.put(cropped_images.copy())
-            
-
-        # Calculate and display FPS
-        fps = 1 / (time.time() - start_time)
-        fps_history.append(fps)  # Store FPS in deque
-        
-        # Compute average FPS
-        avg_fps = sum(fps_history) / len(fps_history)
-
-        # Step 3: Prepare results for frontend
-        cropped_images_base64 = []
-        cropped_images_base64 = [encode_to_base64(cropped) for cropped in cropped_images]
-        
-        # Encode frame to Base64 for streaming
-        frame_bytes = encode_to_base64(frame)
-
-        # Send JSON data to frontend
-        message = json.dumps({
-            "frame": frame_bytes,
-            "cropped_images": cropped_images_base64,
-            "fps": round(avg_fps, 2)
-        })
-        await websocket.send(message)
-
-        await asyncio.sleep(0.05)  # 50ms delay for smoother streaming
-    resnet_queue.put(None)
-    resnet_thread.join()
-
-# WebSocket server
-async def main():
-
-    server1 = websockets.serve(Show_Cam, "0.0.0.0", 8765)
-    server2 = websockets.serve(ResNet_WebSocket, "0.0.0.0", 8766)
-    server3 = websockets.serve(Send_logs, "0.0.0.0", 8767)
-    print("✅ WebSocket server started on ws://0.0.0.0:8765 for video streaming")
-    print("✅ WebSocket server started on ws://0.0.0.0:8766 for ResNet results")
-    print("✅ WebSocket server started on ws://0.0.0.0:8767 for ResNet results")
+    print("✅ WebSocket servers started.")
+    
     try:
         print("🚀 Starting React frontend...")
         subprocess.Popen("npm run dev", cwd=_Web, shell=True)
-
     except Exception as e:
         print("!!!IMPORTANT!!")
-        print("         Try npm install on the web folder!!! ")
+        print("         Try npm install in the web folder!!! ")
         print(f"⚠️ Failed to start React frontend: {e}")
-        
-    await asyncio.gather(server1, server2, server3)
-    await asyncio.Future()  # Prevents the event loop from exiting
+
+    async def frame_loop():
+        global frame_bytes, gl_cropped_images
+        while True:
+            start_time = time.time()
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Failed to capture frame.")
+                break
+            
+            results = YOLO_model.predict(frame, verbose=False, stream=True, conf=0.65)
+            cropped_images = []
+
+            for result in results:
+                for box in result.boxes.xyxy:
+                    x1, y1, x2, y2 = map(int, box[:4])
+                    cropped = frame[y1:y2, x1:x2]
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    if cropped.size > 0:
+                        cropped_images.append(cropped)
+
+            if not resnet_running.is_set():
+                resnet_queue.put(cropped_images.copy())
+
+            fps = 1 / (time.time() - start_time)
+            fps_history.append(fps)
+
+            gl_cropped_images = [encode_to_base64(cropped) for cropped in cropped_images]
+            frame_bytes = encode_to_base64(frame)
+
+            await asyncio.sleep(0.01)  # Yield control to event loop
+
+        resnet_queue.put(None)
+        cap.release()
+        resnet_thread.join()
+
+    # Run everything concurrently
+    await asyncio.gather(frame_loop())
 
 if __name__ == "__main__":
     asyncio.run(main())
