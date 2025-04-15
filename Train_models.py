@@ -30,12 +30,12 @@ pchoice = 0
 
 
 # Naming convention for Models
-dataset_name = "CCTSDB-20e_tt100k-10e"
+dataset_name = "Synthetic"
 # Epoch numbers
-Model_epoch = 10
+Model_epoch = 70
 
 # YOLO Yaml File
-Yolo_Yaml = "d:/Documents/ZZ_Datasets/tt100k_YOLO/data.yaml"
+Yolo_Yaml = r"c:\Users\dei\Downloads\YOLO\synthetic\dataset.yaml"
 # Freeze Resnet Layers?
 freeze_layers = True
 
@@ -50,7 +50,7 @@ def Yolo_train():
     Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_"+ str(date.today())
     # Create a new YOLO model from scratch
     # model = YOLO("yolov8s.pt")
-    model = YOLO("runs/detect/YOLOv8s(tt100k-10e)_e10_2025-04-08/weights/best.pt")
+    model = YOLO("runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/weights/best.pt")
 
     # Display model information (optional)
     model.info()
@@ -194,20 +194,20 @@ def Resnet_train():
     
 def Yolo_cont():
     # insert path to last.pt to continue
-    model = YOLO("runs/detect/custom_103/weights/last.pt")
-    # results =  model.train(resume= True)
+    model = YOLO("runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/weights/last.pt")
+    results =  model.train(resume= True, data = r"runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/args.yaml")
     # results = model.tune(resume=True, data= Yolo_Yaml)
-    results = model.tune(resume=True)
-    model.export(format="pt")
+    # results = model.tune(resume=True,patience = 5)
+    # model.export(format="pt")
     
 def Yolo_tune():
     
     model = YOLO("yolov8s.pt")
     
-    model.tune(name="Tune_10e_10i_SGD_imsz640",
+    model.tune(name="Tune(Edited_Dataset)_10e_10i",
                 data=Yolo_Yaml,
-                epochs= 10,
-                iterations= 10,
+                epochs= 20,
+                iterations= 30,
                 optimizer= 'SGD',
                 imgsz= 640,
                 plots=True,

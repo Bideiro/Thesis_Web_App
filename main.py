@@ -3,6 +3,7 @@ import base64
 import threading
 import cv2
 import numpy as np
+import os
 from datetime import datetime
 import websockets
 import time
@@ -16,10 +17,40 @@ from tensorflow.keras.models import load_model # type: ignore
 
 from ultralytics import YOLO
 
-_Web = "./web"
-#push for r
+_Web = r"web"
 
 # Class names for ResNet classification
+# class_Name = [
+#     "All_traffic_must_turn_left",
+#     "All_traffic_must_turn_right",
+#     "Be_Aware_of_Pedestrian_Crossing",
+#     "Be_Aware_of_School_Children_Crossing",
+#     "Bike_lane_ahead",
+#     "Give_Way",
+#     "Keep_Left",
+#     "Keep_Right",
+#     "No_Entry",
+#     "No_Left_Turn",
+#     "No_Overtaking",
+#     "No_Parking",
+#     "No_Right_Turn",
+#     "No_U-Turn",
+#     "Pass_Either_Side",
+#     "Speed_Limit_20_KMPh",
+#     "Speed_Limit_30_KMPh",
+#     "Speed_Limit_40_KMPh",
+#     "Speed_Limit_50_KMPh",
+#     "Speed_Limit_60_KMPh",
+#     "Speed_Limit_70_KMPh",
+#     "Speed_Limit_80_KMPh",
+#     "Speed_Limit_90_KMPh",
+#     "Speed_Limit_100_KMPh",
+#     "Speed_Limit_110_KMPh",
+#     "Speed_Limit_120_KMPh",
+#     "Speed_Limit_Derestriction",
+#     "Stop"
+# ]
+
 class_Name = [
     "All_traffic_must_turn_left",
     "All_traffic_must_turn_right",
@@ -36,50 +67,55 @@ class_Name = [
     "No_Right_Turn",
     "No_U-Turn",
     "Pass_Either_Side",
-    "Speed_Limit_20_KMPh",
-    "Speed_Limit_30_KMPh",
-    "Speed_Limit_40_KMPh",
-    "Speed_Limit_50_KMPh",
-    "Speed_Limit_60_KMPh",
-    "Speed_Limit_70_KMPh",
-    "Speed_Limit_80_KMPh",
-    "Speed_Limit_90_KMPh",
-    "Speed_Limit_100_KMPh",
-    "Speed_Limit_110_KMPh",
-    "Speed_Limit_120_KMPh",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
+    "Speed_Limit",
     "Speed_Limit_Derestriction",
     "Stop"
 ]
 
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(15E+10FT)04-01-2025.keras')
+ResNet_model = load_model('models/Resnet50V2(newgen_2025-04-07)_2e.keras')
 YOLO_model = YOLO('runs/detect/YOLOv8s(CCTSDB-20e_tt100k-20e)_e40_2025-04-07/weights/best.pt')
-
-resnet_frame_counter = 0  # Counter to control ResNet processing
-no_frame_for_det = 30
 
 
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
 
 fps_history = deque(maxlen=30)
-gl_cropped_images = []
+
 frame_bytes = None
 
-resnet_results = []
-stored_images = deque(maxlen=10)# Stores latest ResNet predictions
+gl_cropped_images = []
+resnet_results = {"data": [], "timestamp": 0}
+
+stored_images = deque(maxlen=10)
 stored_results = deque(maxlen=10)
 
 def encode_to_base64(image):
     _, buffer = cv2.imencode('.jpg', image)
     return base64.b64encode(buffer).decode('utf-8')
 
+def encode_jpg_file_to_base64(file_path):
+    with open(file_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode('utf-8')
+
+
 # ResNet classification function
 def ResNet_Phase():
-    global stored_images
-    global stored_results
-    global resnet_results
+    global class_Name, stored_images, stored_results, resnet_results
+
+    reference_image_folder = 'ref_images'
+    
     while True:
         cropped_images = resnet_queue.get()
         if cropped_images is None:
@@ -100,25 +136,48 @@ def ResNet_Phase():
             # print(f"\nClass Name: {class_Name[class_id]}")
             class_name = class_Name[class_id]
             
-            results.append(f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%")
+            image_filename = f"{class_name}.jpg".replace(' ', '_')
+            reference_image_path = os.path.join(reference_image_folder, image_filename)
+
+            if os.path.exists(reference_image_path):
+                reference_base64 = encode_jpg_file_to_base64(reference_image_path)
+            else:
+                reference_base64 = None
+                print(f"⚠️ Reference image not found for: {class_name}")
+
             dt = datetime.now()
             datetime_now = dt.strftime(' %a - %b %d @ %I:%M %p')
             stored_results.append(f"Sign: {class_name} @ {confidence}% Time: {datetime_now}")
-            stored_images.append(encode_to_base64(cropped))
+            b64_cropped = encode_to_base64(cropped)
+            stored_images.append(b64_cropped)
+            result_string = f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%"
             
-
-        resnet_results = results  # Store latest results
+            results.append({
+                'result': result_string,
+                'class_img': reference_base64,
+                'cropped_img': b64_cropped
+                
+            })
+            
+        resnet_results = {
+                            "data": results,
+                            "timestamp": time.time(),
+                        }
+# Store latest results
         resnet_queue.task_done()
         resnet_running.clear()
 
 async def ResNet_WebSocket(websocket):
-    global resnet_results
+    global resnet_results, gl_cropped_images
     while True:
-        if resnet_results:
-            message = json.dumps({"resnet_predictions": resnet_results})
-            await websocket.send(message)
-            resnet_results = []  # Clear after sending
-        await asyncio.sleep(0.01)  # Send updates every second
+        if resnet_results["data"]:
+            if time.time() - resnet_results["timestamp"] <= 3:
+                message = json.dumps({"ResNetResult": resnet_results["data"]})
+                await websocket.send(message)
+            else:
+                resnet_results = {"data": [], "timestamp": 0}
+        await asyncio.sleep(0.01)
+
 
 async def Send_logs(websocket):
     global stored_results
@@ -134,7 +193,7 @@ async def Send_logs(websocket):
 
 # Sending Cam Frames
 async def Show_Cam(websocket):
-    global fps_history, gl_cropped_images, frame_bytes
+    global fps_history, frame_bytes
 
     while frame_bytes is None:
         await asyncio.sleep(0.1)
@@ -144,11 +203,10 @@ async def Show_Cam(websocket):
 
         message = json.dumps({
             "frame": frame_bytes,
-            "cropped_images": gl_cropped_images,
             "fps": round(avg_fps, 2)
         })
         await websocket.send(message)
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(0.01)
 
 async def main():
     cap = cv2.VideoCapture(1)
@@ -179,6 +237,7 @@ async def main():
     async def frame_loop():
         global frame_bytes, gl_cropped_images
         while True:
+
             start_time = time.time()
             ret, frame = cap.read()
             if not ret:

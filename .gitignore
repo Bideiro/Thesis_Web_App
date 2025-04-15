@@ -27,3 +27,5 @@ __pycache__
 #Model folders
 /models
 /runs
+yolo11n.pt
+yolov8s.pt
