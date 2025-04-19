@@ -85,7 +85,7 @@ class_Name = [
 
 # Load models
 ResNet_model = load_model('models/Resnet50V2(newgen_2025-04-07)_2e.keras')
-YOLO_model = YOLO('runs/detect/YOLOv8s(CCTSDB-20e_tt100k-20e)_e40_2025-04-07/weights/best.pt')
+YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic)_e20_2025-04-20/weights/best.pt')
 
 
 resnet_queue = queue.Queue()

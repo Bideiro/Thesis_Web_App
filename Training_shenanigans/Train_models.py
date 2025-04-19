@@ -32,10 +32,10 @@ pchoice = 0
 # Naming convention for Models
 dataset_name = "Synthetic"
 # Epoch numbers
-Model_epoch = 70
+Model_epoch = 20
 
 # YOLO Yaml File
-Yolo_Yaml = r"c:\Users\dei\Downloads\YOLO\synthetic\dataset.yaml"
+Yolo_Yaml = r"d:\Documents\ZZ_Datasets\New_synthetic\data.yaml"
 # Freeze Resnet Layers?
 freeze_layers = True
 
@@ -49,8 +49,8 @@ Dataset_home_dir = "/mnt/d/Documents/Z_Cleaned_Dataset_v2"
 def Yolo_train():
     Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_"+ str(date.today())
     # Create a new YOLO model from scratch
-    # model = YOLO("yolov8s.pt")
-    model = YOLO("runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/weights/best.pt")
+    model = YOLO("yolov8s.pt")
+    # model = YOLO("runs/detect/YOLOv8s(Synthetic)_e10_2025-04-193/weights/best.pt")
 
     # Display model information (optional)
     model.info()
@@ -58,7 +58,7 @@ def Yolo_train():
     # # Train the model
     model = model.train(data=Yolo_Yaml, epochs=Model_epoch, device='0',
                         save_period= 1, name=Model_name, single_cls = True,
-                        cache= 'disk')
+                        cache= 'disk', freeze =list(range(20)))
     
     # model = model.train(
     #     name="custom_10",
@@ -194,8 +194,8 @@ def Resnet_train():
     
 def Yolo_cont():
     # insert path to last.pt to continue
-    model = YOLO("runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/weights/last.pt")
-    results =  model.train(resume= True, data = r"runs/detect/YOLOv8s(Synthetic)_e30_2025-04-13/args.yaml")
+    model = YOLO("runs/detect/YOLOv8s(Synthetic)_e70_2025-04-14/weights/last.pt")
+    results =  model.train(resume= True, data = r"runs/detect/YOLOv8s(Synthetic)_e70_2025-04-14/args.yaml")
     # results = model.tune(resume=True, data= Yolo_Yaml)
     # results = model.tune(resume=True,patience = 5)
     # model.export(format="pt")
