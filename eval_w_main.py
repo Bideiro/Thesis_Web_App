@@ -8,6 +8,7 @@ from datetime import datetime
 import websockets
 import time
 import queue
+import psutil  # 🔍 For memory usage
 from collections import deque
 
 # ignored cause its just a bug
@@ -163,18 +164,25 @@ async def Send_logs(websocket):
 async def Show_Cam(websocket):
     global fps_history, frame_bytes
 
+    process = psutil.Process()  # 🔍 Initialize once
+
     while frame_bytes is None:
         await asyncio.sleep(0.1)
 
     while True:
         avg_fps = sum(fps_history) / len(fps_history) if fps_history else 0.0
+        memory_mb = process.memory_info().rss / 1024 / 1024  # 🔍 Get memory usage
 
         message = json.dumps({
             "frame": frame_bytes,
-            "fps": round(avg_fps, 2)
+            "fps": round(avg_fps, 2),
+            "memory_usage_mb": round(memory_mb, 2)  # 🔍 Add memory to JSON
         })
+        print(f"📸 FPS: {avg_fps:.2f} | 🧠 Mem: {memory_mb:.2f} MB")
+
         await websocket.send(message)
         await asyncio.sleep(0.01)
+
 
 async def main():
     cap = cv2.VideoCapture(1)
