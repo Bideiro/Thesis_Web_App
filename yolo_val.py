@@ -6,13 +6,13 @@ dataset_name = "Synthetic"
 Model_epoch = 15
 
 # YOLO Yaml File
-Yolo_Yaml = r"d:\Documents\ZZ_Datasets\New_synthetic-tt100k\data.yaml"
+Yolo_Yaml = r"d:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\data.yaml"
 
 
 Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "__"+ str(date.today())
 # Create a new YOLO model from scratch
 # model = YOLO("yolov8s.pt")
-model = YOLO("runs/detect/YOLOv8s(Synthetic)_e70_2025-04-14/weights/best.pt")
+model = YOLO("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
 
 # Display model information (optional)
 model.info()

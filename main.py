@@ -52,18 +52,23 @@ class_Name = [
 
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_10e.keras')
+ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras')
 YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
 
-
+# Resnetqueue
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
 
+# stats
 fps_history = deque(maxlen=30)
 
+# vid
 frame_bytes = None
 
+# croppedimg rn
 gl_cropped_images = []
+
+# snapshot
 resnet_results = {"data": [], "timestamp": 0}
 
 stored_images = deque(maxlen=10)
@@ -126,24 +131,26 @@ def ResNet_Phase():
                 'cropped_img': b64_cropped
                 
             })
-            
-        resnet_results = {
-                            "data": results,
-                            "timestamp": time.time(),
-                        }
+        if results:
+            resnet_results = {
+                                "data": results,
+                                "timestamp": time.time(),
+                            }
+
 # Store latest results
         resnet_queue.task_done()
         resnet_running.clear()
 
+
 async def ResNet_WebSocket(websocket):
     global resnet_results, gl_cropped_images
     while True:
-        if resnet_results["data"]:
-            if time.time() - resnet_results["timestamp"] <= 3:
-                message = json.dumps({"ResNetResult": resnet_results["data"]})
-                await websocket.send(message)
-            else:
-                resnet_results = {"data": [], "timestamp": 0}
+        time_since_last_result = time.time() - resnet_results["timestamp"]
+        if time_since_last_result <= 3:
+            data_to_send = resnet_results["data"]
+        else:
+            data_to_send = []
+        await websocket.send(json.dumps({"ResNetResult": data_to_send}))
         await asyncio.sleep(0.01)
 
 

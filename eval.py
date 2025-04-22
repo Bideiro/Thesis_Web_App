@@ -14,7 +14,7 @@ import pandas as pd
 # ---------------- CONFIG ----------------
 IMAGE_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\images")
 LABEL_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\labels")
-RESNET_MODEL_PATH = Path("Resnet50V2(NewSyn_2025-04-21)_10e.keras")
+RESNET_MODEL_PATH = Path("models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras")
 YOLO_MODEL_PATH = Path("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
 RESNET_INPUT_SIZE = 224
 CONFIDENCE_THRESHOLD = 0.65
