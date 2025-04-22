@@ -38,40 +38,6 @@ const Inference: React.FC = () => {
         socket.onclose = () => console.log("WebSocket connection closed");
 
         const resnetSocket = new WebSocket(`ws://${window.location.hostname}:8766`);
-        // resnetSocket.onmessage = (event: MessageEvent) => {
-        //     try {
-        //         const parsed = JSON.parse(event.data);
-        //         if (parsed.ResNetResult && Array.isArray(parsed.ResNetResult)) {
-        //             setResnetResults(parsed.ResNetResult);
-
-        //             if (soundEnabled !== 0 && parsed.ResNetResult.length > 0) {
-        //                 const classText = parsed.ResNetResult[0].result;
-        //                 const className = classText.split(":")[1]?.split("(")[0]?.trim();
-
-        //                 if (className) {
-        //                     if (currentAudio) {
-        //                         currentAudio.pause();
-        //                         currentAudio.currentTime = 0;
-        //                     }
-
-        //                     let audioFile = "";
-
-        //                     if (soundEnabled === 1) {
-        //                         audioFile = "/audio/beep.mp3";
-        //                     } else if (soundEnabled === 2) {
-        //                         audioFile = `/audio/${className}.mp3`;
-        //                     }
-
-        //                     const audio = new Audio(audioFile);
-        //                     audio.play();
-        //                     setCurrentAudio(audio);
-        //                 }
-        //             }
-        //         }
-        //     } catch (error) {
-        //         console.error("Error parsing ResNet WebSocket message:", error);
-        //     }
-        // };
 
         resnetSocket.onmessage = (event: MessageEvent) => {
             try {
