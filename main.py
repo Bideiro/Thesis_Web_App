@@ -18,6 +18,7 @@ from tensorflow.keras.models import load_model # type: ignore
 from ultralytics import YOLO
 
 _Web = r"web"
+CONFIDENCE_YOLO = 0.70
 
 class_Name = [
     "All_traffic_Must_Turn_Left",
@@ -53,8 +54,8 @@ class_Name = [
 
 # Load models
 ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras')
-YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
-
+# YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
+YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_20e_2025-04-21/weights/best.pt')
 # Resnetqueue
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
@@ -144,19 +145,6 @@ def ResNet_Phase():
 # Store latest results
         resnet_queue.task_done()
         resnet_running.clear()
-
-# old
-# async def ResNet_WebSocket(websocket):
-#     global resnet_results, gl_cropped_images
-#     while True:
-#         time_since_last_result = time.time() - resnet_results["timestamp"]
-#         if time_since_last_result <= 3:
-#             data_to_send = resnet_results["data"]
-#         else:
-#             data_to_send = []
-#         await websocket.send(json.dumps({"ResNetResult": data_to_send}))
-#         await asyncio.sleep(0.01)
-
 # new
 
 async def ResNet_WebSocket(websocket):
@@ -248,7 +236,7 @@ async def main():
                 print("Error: Failed to capture frame.")
                 break
             
-            results = YOLO_model.predict(frame, verbose=False, stream=True, conf=0.5)
+            results = YOLO_model.predict(frame, verbose=False, stream=True, conf=CONFIDENCE_YOLO)
             cropped_images = []
 
             for result in results:

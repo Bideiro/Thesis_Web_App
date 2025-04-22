@@ -49,26 +49,36 @@ const Inference: React.FC = () => {
                     if (
                         soundEnabled !== 0 &&
                         parsed.ResNetResult.length > 0 &&
-                        now - lastPlayed > 2000 // 3 seconds cooldown
+                        now - lastPlayed > 3000 // 3 seconds cooldown
                     ) {
-                        const classText = parsed.ResNetResult[0].result;
-                        const className = classText.split(":")[1]?.split("(")[0]?.trim();
 
-                        if (className) {
-                            let audioFile = "";
+                        const playResultsSequentially = async () => {
+                            for (const result of parsed.ResNetResult) {
+                                const classText = result.result;
+                                const className = classText.split(":")[1]?.split("(")[0]?.trim();
 
-                            if (soundEnabled === 1) {
-                                audioFile = "/audio/beep.mp3";
-                            } else if (soundEnabled === 2) {
-                                audioFile = `/audio/${className}.mp3`;
+                                if (className) {
+                                    let audioFile = "";
+
+                                    if (soundEnabled === 1) {
+                                        audioFile = "/audio/beep.mp3";
+                                    } else if (soundEnabled === 2) {
+                                        audioFile = `/audio/${className}.mp3`;
+                                    }
+
+                                    const audio = new Audio(audioFile);
+                                    setCurrentAudio(audio);
+                                    await audio.play();
+
+                                    lastPlayed = Date.now(); // Update timestamp
+                                    await new Promise(res => setTimeout(res, 1000)); // wait 1 second before next
+                                }
                             }
+                        };
 
-                            const audio = new Audio(audioFile);
-                            setCurrentAudio(audio);
-                            audio.play();
+                        // Call the async function
+                        playResultsSequentially();
 
-                            lastPlayed = now; // update last played timestamp
-                        }
                     }
                 }
             } catch (error) {
