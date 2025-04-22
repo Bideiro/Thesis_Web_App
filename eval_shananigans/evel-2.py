@@ -7,15 +7,13 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 from ultralytics import YOLO
 from tensorflow.keras.applications.resnet_v2 import preprocess_input
 from tensorflow.keras.models import load_model
-from sklearn.metrics import classification_report, confusion_matrix
-from collections import Counter
-import pandas as pd
+from realesrgan import RealESRGAN  # Assuming we use RealESRGAN for super-resolution
 
 # ---------------- CONFIG ----------------
-IMAGE_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\images")
-LABEL_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\labels")
-RESNET_MODEL_PATH = Path("Resnet50V2(NewSyn_2025-04-21)_10e.keras")
-YOLO_MODEL_PATH = Path("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
+IMAGE_DIR = Path(r"D:\Documents\ZZ_Datasets\New_synthetic-tt100k\test\images")
+LABEL_DIR = Path(r"D:\Documents\ZZ_Datasets\New_synthetic-tt100k\test\labels")
+RESNET_MODEL_PATH = Path("models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras")
+YOLO_MODEL_PATH = Path("runs/detect/YOLOv8s(Synthetic_Cleaned)_e20__2025-04-212/weights/best.pt")
 RESNET_INPUT_SIZE = 224
 CONFIDENCE_THRESHOLD = 0.65
 IOU_THRESHOLD = 0.5
@@ -24,6 +22,9 @@ IOU_THRESHOLD = 0.5
 # Load models
 yolo_model = YOLO(str(YOLO_MODEL_PATH))
 resnet_model = load_model(str(RESNET_MODEL_PATH))
+
+# Load Super-Resolution model
+sr_model = RealESRGAN.from_pretrained('RealESRGAN_x4')  # x4 upscaling
 
 true_labels = []
 predicted_labels = []
@@ -65,7 +66,10 @@ for image_path in image_paths:
         print(f"⚠️ Couldn't load image: {image_path.name}")
         continue
 
-    img_h, img_w = image.shape[:2]
+    # Apply Super-Resolution to enhance image resolution
+    image_sr = sr_model.predict(image)
+
+    img_h, img_w = image_sr.shape[:2]
 
     # Load ground truth labels
     gt_boxes = []
@@ -83,7 +87,7 @@ for image_path in image_paths:
     start_time = time.time()
 
     for gt_class, x1, y1, x2, y2 in gt_boxes:
-        cropped = image[y1:y2, x1:x2]
+        cropped = image_sr[y1:y2, x1:x2]
 
         if cropped.size == 0:
             continue
@@ -99,7 +103,6 @@ for image_path in image_paths:
         predicted_labels.append(pred_class)
 
     frame_times.append(time.time() - start_time)
-
 
 # ---------------- METRICS ----------------
 if not true_labels:
@@ -119,37 +122,6 @@ print(true_labels)
 print("\n PREDICTED")
 print(predicted_labels)
 
-# ---------- PER-CLASS METRICS ----------
-print("\n📊 Per-Class Breakdown (Precision, Recall, F1-Score)")
-
-class_report = classification_report(true_labels, predicted_labels, output_dict=True, zero_division=0)
-class_df = pd.DataFrame(class_report).transpose()
-
-# Filter out only class IDs (exclude 'accuracy', 'macro avg', 'weighted avg')
-class_df = class_df[class_df.index.str.isdigit()]
-class_df.index = class_df.index.astype(int)
-class_df = class_df.sort_index()
-
-print(class_df[['precision', 'recall', 'f1-score', 'support']].round(2))
-
-# ---------- TOP MISCLASSIFICATIONS ----------
-print("\n❌ Top Misclassifications")
-
-conf_matrix = confusion_matrix(true_labels, predicted_labels)
-misclass_counts = []
-
-for true_idx in range(conf_matrix.shape[0]):
-    for pred_idx in range(conf_matrix.shape[1]):
-        if true_idx != pred_idx and conf_matrix[true_idx][pred_idx] > 0:
-            misclass_counts.append(((true_idx, pred_idx), conf_matrix[true_idx][pred_idx]))
-
-# Sort descending by count
-top_misclass = sorted(misclass_counts, key=lambda x: x[1], reverse=True)[:10]
-
-print(f"{'True Class':<12}{'Predicted As':<15}{'Count'}")
-for (true_class, pred_class), count in top_misclass:
-    print(f"{true_class:<12}{pred_class:<15}{count}")
-
 print("\n📊 Hybrid YOLO + ResNet Evaluation")
 print(f"Total Detections        : {len(true_labels)}")
 print(f"Accuracy                : {acc*100:.2f}%")
@@ -158,5 +130,3 @@ print(f"Recall                  : {rec:.4f}")
 print(f"F1 Score                : {f1:.4f}")
 print(f"Average FPS             : {avg_fps:.2f}")
 print(f"Total Memory Usage      : {memory_mb:.2f} MB")
-
-

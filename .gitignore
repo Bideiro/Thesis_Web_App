@@ -27,5 +27,6 @@ __pycache__
 #Model folders
 /models
 /runs
+/checkpoints_resnet
 yolo11n.pt
 yolov8s.pt

@@ -11,16 +11,16 @@ import numpy as np
 import os
 
 # === CONFIGURATION ===
-Dataset_home_dir = "C:/Users/Rheiniel F. Damasco/Desktop/Paulit-ulit-na-katarantaduhan/Cleaned Dataset"  # 🖍️ Set this to your actual dataset
+Dataset_home_dir = "/mnt/d/Documents/ZZ_Datasets/Resnet_GTSRB_Cleaned_FINAL(4-20-25)"  # 🖍️ Set this to your actual dataset
 freeze_layers=True
-Model_epoch = 2
-resume_from_checkpoint = True  # 🔥 Toggle resume mode
+Model_epoch = 10
+resume_from_checkpoint = False # 🔥 Toggle resume mode
 checkpoint_dir = 'checkpoints_resnet/'  # 🔥 Checkpoint folder
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 # === START TRAINING ===
 def Resnet_train():
-    model_title = "Resnet50V2(newgen_" + str(date.today()) + ")_" + str(Model_epoch) + "e.keras"
+    model_title = "Resnet50V2(NewSyn_" + str(date.today()) + ")_" + str(Model_epoch) + "e.keras"
 
     train_dir = Dataset_home_dir + "/train"
     val_dir = Dataset_home_dir + "/test"
@@ -67,16 +67,16 @@ def Resnet_train():
     print("✅ Computed class weights:", class_weight_dict)
 
     # === Load or build model ===
-    # latest_checkpoint = None
-    # if resume_from_checkpoint:
-    #     checkpoints = [f for f in os.listdir(checkpoint_dir) if f.endswith(".keras")]
-    #     if checkpoints:
-    #         latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_epoch_')[1].split('.')[0]))
-    #         print(f"🚀 Resuming from checkpoint: {latest_checkpoint}")
-    #         model = load_model(os.path.join(checkpoint_dir, latest_checkpoint))
-    #     else:
-    #         print("⚠️ No checkpoints found, starting from scratch.")
-    #         latest_checkpoint = None
+    latest_checkpoint = None
+    if resume_from_checkpoint:
+        checkpoints = [f for f in os.listdir(checkpoint_dir) if f.endswith(".keras")]
+        if checkpoints:
+            latest_checkpoint = max(checkpoints, key=lambda x: int(x.split('_epoch_')[1].split('.')[0]))
+            print(f"🚀 Resuming from checkpoint: {latest_checkpoint}")
+            model = load_model(os.path.join(checkpoint_dir, latest_checkpoint))
+        else:
+            print("⚠️ No checkpoints found, starting from scratch.")
+            latest_checkpoint = None
 
     # if not latest_checkpoint:
     #     base_model = ResNet50V2(weights="imagenet", include_top=False, input_shape=(img_size, img_size, 3))
@@ -117,7 +117,7 @@ def Resnet_train():
         verbose=1
     )
     # 🚀 Load your frozen model manually
-    model_path = "checkpoints_resnet/resnet_epoch_01.keras"
+    model_path = "Resnet50V2(NewSyn_2025-04-21)_15e.keras"
     print(f"🚀 Loading frozen model from: {model_path}")
     model = load_model(model_path)
 

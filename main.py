@@ -20,11 +20,11 @@ from ultralytics import YOLO
 _Web = r"web"
 
 class_Name = [
-    "All_traffic_must_turn_left",
-    "All_traffic_must_turn_right",
-    "Be_Aware_of_Pedestrian_Crossing",
-    "Be_Aware_of_School_Children_Crossing",
-    "Bike_lane_ahead",
+    "All_traffic_Must_Turn_Left",
+    "All_traffic_Must_Turn_Right",
+    "Be_Aware_Of_Pedestrian_Crossing",
+    "Be_Aware_Of_School_Children_Crossing",
+    "Bike_Lane_Ahead",
     "Give_Way",
     "Keep_Left",
     "Keep_Right",
@@ -52,8 +52,8 @@ class_Name = [
 
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(newgen_2025-04-07)_2e.keras')
-YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic)_e20_2025-04-20/weights/best.pt')
+ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_10e.keras')
+YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
 
 
 resnet_queue = queue.Queue()
@@ -212,7 +212,7 @@ async def main():
                 print("Error: Failed to capture frame.")
                 break
             
-            results = YOLO_model.predict(frame, verbose=False, stream=True, conf=0.65)
+            results = YOLO_model.predict(frame, verbose=False, stream=True, conf=0.5)
             cropped_images = []
 
             for result in results:

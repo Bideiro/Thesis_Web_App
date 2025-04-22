@@ -30,12 +30,12 @@ pchoice = 0
 
 
 # Naming convention for Models
-dataset_name = "Synthetic"
+dataset_name = "Synthetic_Cleaned"
 # Epoch numbers
-Model_epoch = 20
+Model_epoch = 10
 
 # YOLO Yaml File
-Yolo_Yaml = r"d:\Documents\ZZ_Datasets\New_synthetic\data.yaml"
+Yolo_Yaml = r"d:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\data.yaml"
 # Freeze Resnet Layers?
 freeze_layers = True
 
@@ -47,10 +47,10 @@ freeze_layers = True
 Dataset_home_dir = "/mnt/d/Documents/Z_Cleaned_Dataset_v2"
 
 def Yolo_train():
-    Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_"+ str(date.today())
+    Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_20e_"+ str(date.today())
     # Create a new YOLO model from scratch
-    model = YOLO("yolov8s.pt")
-    # model = YOLO("runs/detect/YOLOv8s(Synthetic)_e10_2025-04-193/weights/best.pt")
+    # model = YOLO("yolov8s.pt")
+    model = YOLO("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
 
     # Display model information (optional)
     model.info()
@@ -58,7 +58,7 @@ def Yolo_train():
     # # Train the model
     model = model.train(data=Yolo_Yaml, epochs=Model_epoch, device='0',
                         save_period= 1, name=Model_name, single_cls = True,
-                        cache= 'disk', freeze =list(range(20)))
+                        cache= 'disk')
     
     # model = model.train(
     #     name="custom_10",

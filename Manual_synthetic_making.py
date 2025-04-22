@@ -6,10 +6,10 @@ from collections import defaultdict
 from torchvision import datasets
 import random
 
-yolo_dataset = r"D:\Documents\ZZ_Datasets\tt100k_2022_YOLO\test"
-resnet_dataset = r"D:\Documents\ZZ_Datasets\Resnet_Combined_FINAL(3-15-25)\train"
+yolo_dataset = r"D:\Documents\ZZ_Datasets\tt100k_2022_YOLO\train"
+resnet_dataset = r"D:\Documents\ZZ_Datasets\Resnet_GTSRB_Cleaned_FINAL(4-20-25)\train"
 
-output = r"D:\Documents\ZZ_Datasets\New_synthetic\test"
+output = r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\train"
 
 resnet_dataset = Path(resnet_dataset)
 yolo_dataset = Path(yolo_dataset)
