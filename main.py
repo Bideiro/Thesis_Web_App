@@ -18,7 +18,8 @@ from tensorflow.keras.models import load_model # type: ignore
 from ultralytics import YOLO
 
 _Web = r"web"
-CONFIDENCE_YOLO = 0.70
+CONFIDENCE_YOLO = 0.8
+rn_conf = 80
 
 class_Name = [
     "All_traffic_Must_Turn_Left",
@@ -55,7 +56,7 @@ class_Name = [
 # Load models
 ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras')
 # YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
-YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_20e_2025-04-21/weights/best.pt')
+YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22/weights/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22.pt')
 # Resnetqueue
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
@@ -91,7 +92,7 @@ def encode_jpg_file_to_base64(file_path):
 # ResNet classification function
 def ResNet_Phase():
     global class_Name, stored_images, stored_results, resnet_results
-
+    fn_conf = 0
     reference_image_folder = 'ref_images'
     
     while True:
@@ -112,31 +113,33 @@ def ResNet_Phase():
             confidence =round((predictions.max() * 100), 2)
             # print(predictions)
             # print(f"\nClass Name: {class_Name[class_id]}")
-            class_name = class_Name[class_id]
-            
-            image_filename = f"{class_name}.jpg".replace(' ', '_')
-            reference_image_path = os.path.join(reference_image_folder, image_filename)
-
-            if os.path.exists(reference_image_path):
-                reference_base64 = encode_jpg_file_to_base64(reference_image_path)
-            else:
-                reference_base64 = None
-                print(f"⚠️ Reference image not found for: {class_name}")
-
-            dt = datetime.now()
-            datetime_now = dt.strftime(' %a - %b %d @ %I:%M %p')
-            stored_results.append(f"Sign: {class_name} @ {confidence}% Time: {datetime_now}")
-            b64_cropped = encode_to_base64(cropped)
-            stored_images.append(b64_cropped)
-            result_string = f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%"
-            
-            results.append({
-                'result': result_string,
-                'class_img': reference_base64,
-                'cropped_img': b64_cropped
+            if confidence >= rn_conf:
+                fn_conf = confidence
+                class_name = class_Name[class_id]
                 
-            })
-        if results:
+                image_filename = f"{class_name}.jpg".replace(' ', '_')
+                reference_image_path = os.path.join(reference_image_folder, image_filename)
+
+                if os.path.exists(reference_image_path):
+                    reference_base64 = encode_jpg_file_to_base64(reference_image_path)
+                else:
+                    reference_base64 = None
+                    print(f"⚠️ Reference image not found for: {class_name}")
+
+                dt = datetime.now()
+                datetime_now = dt.strftime(' %a - %b %d @ %I:%M %p')
+                stored_results.append(f"Sign: {class_name} @ {confidence}% Time: {datetime_now}")
+                b64_cropped = encode_to_base64(cropped)
+                stored_images.append(b64_cropped)
+                result_string = f"Sign {i + 1}: {class_name} ( {class_id} ) @ {confidence}%"
+                
+                results.append({
+                    'result': result_string,
+                    'class_img': reference_base64,
+                    'cropped_img': b64_cropped
+                    
+                })
+        if results and (fn_conf >= rn_conf):
             resnet_results = {
                                 "data": results,
                                 "timestamp": time.time(),

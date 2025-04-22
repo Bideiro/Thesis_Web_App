@@ -47,10 +47,10 @@ freeze_layers = True
 Dataset_home_dir = "/mnt/d/Documents/Z_Cleaned_Dataset_v2"
 
 def Yolo_train():
-    Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_20e_"+ str(date.today())
+    Model_name = "YOLOv8s(" + dataset_name + ")_e" + str(Model_epoch) + "_30e_"+ str(date.today())
     # Create a new YOLO model from scratch
     # model = YOLO("yolov8s.pt")
-    model = YOLO("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
+    model = YOLO("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_20e_2025-04-21/weights/best.pt")
 
     # Display model information (optional)
     model.info()
