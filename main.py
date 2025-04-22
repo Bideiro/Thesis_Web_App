@@ -74,6 +74,10 @@ resnet_results = {"data": [], "timestamp": 0}
 stored_images = deque(maxlen=10)
 stored_results = deque(maxlen=10)
 
+
+# client list
+client_modes = {}
+
 def encode_to_base64(image):
     _, buffer = cv2.imencode('.jpg', image)
     return base64.b64encode(buffer).decode('utf-8')
@@ -141,18 +145,43 @@ def ResNet_Phase():
         resnet_queue.task_done()
         resnet_running.clear()
 
+# old
+# async def ResNet_WebSocket(websocket):
+#     global resnet_results, gl_cropped_images
+#     while True:
+#         time_since_last_result = time.time() - resnet_results["timestamp"]
+#         if time_since_last_result <= 3:
+#             data_to_send = resnet_results["data"]
+#         else:
+#             data_to_send = []
+#         await websocket.send(json.dumps({"ResNetResult": data_to_send}))
+#         await asyncio.sleep(0.01)
+
+# new
 
 async def ResNet_WebSocket(websocket):
     global resnet_results, gl_cropped_images
-    while True:
-        time_since_last_result = time.time() - resnet_results["timestamp"]
-        if time_since_last_result <= 3:
-            data_to_send = resnet_results["data"]
-        else:
-            data_to_send = []
-        await websocket.send(json.dumps({"ResNetResult": data_to_send}))
-        await asyncio.sleep(0.01)
 
+    client_modes[websocket] = "none"
+
+    try:
+        while True:
+            try:
+                message = await asyncio.wait_for(websocket.recv(), timeout=0.01)
+                if message.startswith("client_mode:"):
+                    mode = message.split("client_mode:")[1]
+                    client_modes[websocket] = mode
+                    print(f"🔈 Client mode set to: {mode}")
+            except asyncio.TimeoutError:
+                pass  # no incoming message; continue sending data
+
+            time_since_last_result = time.time() - resnet_results["timestamp"]
+            data_to_send = resnet_results["data"] if time_since_last_result <= 3 else []
+            await websocket.send(json.dumps({"ResNetResult": data_to_send}))
+            await asyncio.sleep(0.01)
+    except websockets.exceptions.ConnectionClosed:
+        print("Client disconnected.")
+        client_modes.pop(websocket, None)
 
 async def Send_logs(websocket):
     global stored_results

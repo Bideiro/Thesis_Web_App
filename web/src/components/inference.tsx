@@ -3,8 +3,6 @@ import React, { useEffect, useState } from "react";
 
 interface WebSocketData {
     frame: string;
-    behavior: string;
-    cropped_images: string[];
     fps: number;
 }
 
@@ -17,13 +15,14 @@ interface ResnetData {
 const Inference: React.FC = () => {
     const [imageSrc, setImageSrc] = useState<string | null>(null);
     const [fps, setFps] = useState<number | null>(0);
-
-    const [croppedImages, setCroppedImages] = useState<string[]>([]);
-    const [class_img, setclass_img] = useState<string | null>(null);
     const [resnetResults, setResnetResults] = useState<ResnetData[]>([]);
 
-    // Voice
-    const [soundEnabled, setSoundEnabled] = useState<number | null>(0);
+    // 0 = disabled, 1 = beep, 2 = voice
+    const [soundEnabled, setSoundEnabled] = useState<number>(0);
+    const [playingAudio, setPlayingAudio] = useState(false);
+    const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+
+    let lastPlayed = 0; // this will track the last time a sound was played
 
     useEffect(() => {
         const socket = new WebSocket(`ws://${window.location.hostname}:8765`);
@@ -39,132 +38,182 @@ const Inference: React.FC = () => {
         socket.onclose = () => console.log("WebSocket connection closed");
 
         const resnetSocket = new WebSocket(`ws://${window.location.hostname}:8766`);
+        // resnetSocket.onmessage = (event: MessageEvent) => {
+        //     try {
+        //         const parsed = JSON.parse(event.data);
+        //         if (parsed.ResNetResult && Array.isArray(parsed.ResNetResult)) {
+        //             setResnetResults(parsed.ResNetResult);
+
+        //             if (soundEnabled !== 0 && parsed.ResNetResult.length > 0) {
+        //                 const classText = parsed.ResNetResult[0].result;
+        //                 const className = classText.split(":")[1]?.split("(")[0]?.trim();
+
+        //                 if (className) {
+        //                     if (currentAudio) {
+        //                         currentAudio.pause();
+        //                         currentAudio.currentTime = 0;
+        //                     }
+
+        //                     let audioFile = "";
+
+        //                     if (soundEnabled === 1) {
+        //                         audioFile = "/audio/beep.mp3";
+        //                     } else if (soundEnabled === 2) {
+        //                         audioFile = `/audio/${className}.mp3`;
+        //                     }
+
+        //                     const audio = new Audio(audioFile);
+        //                     audio.play();
+        //                     setCurrentAudio(audio);
+        //                 }
+        //             }
+        //         }
+        //     } catch (error) {
+        //         console.error("Error parsing ResNet WebSocket message:", error);
+        //     }
+        // };
+
         resnetSocket.onmessage = (event: MessageEvent) => {
             try {
                 const parsed = JSON.parse(event.data);
                 if (parsed.ResNetResult && Array.isArray(parsed.ResNetResult)) {
                     setResnetResults(parsed.ResNetResult);
+
+                    const now = Date.now();
+                    if (
+                        soundEnabled !== 0 &&
+                        parsed.ResNetResult.length > 0 &&
+                        now - lastPlayed > 2000 // 3 seconds cooldown
+                    ) {
+                        const classText = parsed.ResNetResult[0].result;
+                        const className = classText.split(":")[1]?.split("(")[0]?.trim();
+
+                        if (className) {
+                            let audioFile = "";
+
+                            if (soundEnabled === 1) {
+                                audioFile = "/audio/beep.mp3";
+                            } else if (soundEnabled === 2) {
+                                audioFile = `/audio/${className}.mp3`;
+                            }
+
+                            const audio = new Audio(audioFile);
+                            setCurrentAudio(audio);
+                            audio.play();
+
+                            lastPlayed = now; // update last played timestamp
+                        }
+                    }
                 }
             } catch (error) {
                 console.error("Error parsing ResNet WebSocket message:", error);
             }
         };
-
         resnetSocket.onclose = () => console.log("ResNet WebSocket closed");
 
         return () => {
             resnetSocket.close();
             socket.close();
         };
-    }, []);
-
+    }, [soundEnabled]);
 
     return (
-        <div className="container-fluid">
-            <p className="display-1 text-center">LIVE CAMERA FEED</p>
-            <div className='d-flex flex-row flex-column-sm align-items-center gap-2'>
-                <input
-                    className="form-check-input"
-                    type="radio"
-                    name="toggleDisable"
-                    id="disableSound"
-                //   checked={!soundEnabled}
-                //   onChange={() => {
-                //     setSoundEnabled(false);
-                //     stopCurrentAudio();
-                //   }}
-                />
-                <label className="form-check-label" htmlFor="disableSound">
-                    Disable Sound
-                </label>
+        <div className="container-fluid p-4">
+            <h1 className="text-center mb-4">LIVE CAMERA FEED</h1>
 
-                <input
-                    className="form-check-input"
-                    type="radio"
-                    name="toggleBeep"
-                    id="Enable Beep"
-                // checked={!soundEnabled}
-                // onChange={() => {
-                //     setSoundEnabled(false);
-                //     stopCurrentAudio();
-                // }}
-                />
-                <label className="form-check-label" htmlFor="disableSound">
-                    Enable Beep
-                </label>
-
+            {/* Sound Control */}
+            <div className='d-flex flex-row flex-wrap align-items-center gap-4 mb-4'>
+                <div className="form-check">
                     <input
                         className="form-check-input"
                         type="radio"
-                        name="toggleVoice"
-                        id="enableVoice"
-                        // checked={soundEnabled}
-                        // onChange={() => setSoundEnabled(true)}
+                        name="soundOptions"
+                        id="disableSound"
+                        checked={soundEnabled === 0}
+                        onChange={() => setSoundEnabled(0)}
                     />
-                    <label className="form-check-label" htmlFor="enableSound">
+                    <label className="form-check-label" htmlFor="disableSound">
+                        Disable Sound
+                    </label>
+                </div>
+
+                <div className="form-check">
+                    <input
+                        className="form-check-input"
+                        type="radio"
+                        name="soundOptions"
+                        id="enableBeep"
+                        checked={soundEnabled === 1}
+                        onChange={() => setSoundEnabled(1)}
+                    />
+                    <label className="form-check-label" htmlFor="enableBeep">
+                        Enable Beep
+                    </label>
+                </div>
+
+                <div className="form-check">
+                    <input
+                        className="form-check-input"
+                        type="radio"
+                        name="soundOptions"
+                        id="enableVoice"
+                        checked={soundEnabled === 2}
+                        onChange={() => setSoundEnabled(2)}
+                    />
+                    <label className="form-check-label" htmlFor="enableVoice">
                         Enable Voice
                     </label>
-                    <p className="h6 text-left">🟢 FPS: {fps}</p>
                 </div>
 
+                <p className="h6 text-left mb-0">🟢 FPS: {fps}</p>
+            </div>
 
-                {/* Live Camera Feed */}
-                {imageSrc ? (
-                    <img src={imageSrc} alt="Live Feed" className="img-fluid border border-primary border-5 rounded" />
-                ) : (
-                    <p className="connecting">Connecting to camera...</p>
-                )}
+            {/* Live Camera Feed */}
+            {imageSrc ? (
+                <img
+                    src={imageSrc}
+                    alt="Live Feed"
+                    className="img-fluid border border-primary border-5 rounded w-100"
+                    style={{ maxHeight: "60vh", objectFit: "contain" }}
+                />
+            ) : (
+                <p className="connecting text-center">Connecting to camera...</p>
+            )}
 
-                {/* Cropped Images & ResNet Results (Responsive) */}
-                <div className="border border-3 mt-3">
-                    <div className="row d-flex justify-content-center">
-                        {resnetResults.map((data, index) => {
-                            const resnet = data;
-
-                            return (
-                                <div className="col-12 col-md-6 d-flex align-items-center rounded p-2" key={index}>
-                                    {/* 🟡 Yellow box: Cropped image */}
-                                    <div className="col-auto">
-                                        <img
-                                            src={`data:image/jpeg;base64,${resnet.cropped_img}`}
-                                            alt={`Detected ${index}`}
-                                            className="img-fluid rounded"
-                                        />
-                                    </div>
-
-                                    {/* 🟢 Class Name */}
-                                    <div
-                                        className="col text-start ms-3"
-                                        style={{
-                                            marginRight: "20px",
-                                            fontWeight: "bold",
-                                            fontSize: "18px",
-                                            color: "green",
-                                        }}
-                                    >
-                                        {resnet ? resnet.result : "Detecting..."}
-                                    </div>
-
-                                    {/* 🔴 Reference Image (class_img) */}
-                                    <div className="col-auto pe-3">
-                                        {resnet?.class_img ? (
-                                            <img
-                                                src={`data:image/png;base64,${resnet.class_img}`}
-                                                alt={`Reference ${index}`}
-                                                className="img-fluid rounded"
-                                                style={{ maxWidth: "150px", height: "auto", border: "3px solid red" }}
-                                            />
-                                        ) : (
-                                            <p style={{ color: "gray" }}>Waiting...</p>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+            {/* ResNet Results */}
+            <div className="border border-3 mt-4 p-3 bg-light rounded">
+                <div className="row d-flex justify-content-center">
+                    {resnetResults.map((resnet, index) => (
+                        <div className="col-12 col-md-6 d-flex align-items-center mb-3" key={index}>
+                            <div className="col-auto">
+                                <img
+                                    src={`data:image/jpeg;base64,${resnet.cropped_img}`}
+                                    alt={`Detected ${index}`}
+                                    className="img-fluid rounded"
+                                    style={{ maxWidth: "150px", border: "2px solid orange" }}
+                                />
+                            </div>
+                            <div className="col text-start ms-3">
+                                <strong className="text-success">{resnet.result}</strong>
+                            </div>
+                            <div className="col-auto">
+                                {resnet.class_img ? (
+                                    <img
+                                        src={`data:image/png;base64,${resnet.class_img}`}
+                                        alt={`Reference ${index}`}
+                                        className="img-fluid rounded"
+                                        style={{ maxWidth: "150px", border: "3px solid red" }}
+                                    />
+                                ) : (
+                                    <p className="text-muted">Waiting...</p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
-            );
+        </div>
+    );
 };
 
-            export default Inference;
+export default Inference;
