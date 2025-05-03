@@ -1,6 +1,6 @@
 from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, ModelCheckpoint
 from tensorflow.keras.models import load_model
-from tensorflow.keras.applications import ResNet50V2
+from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -12,15 +12,15 @@ import os
 
 # === CONFIGURATION ===
 Dataset_home_dir = "/mnt/d/Documents/ZZ_Datasets/Resnet_GTSRB_Cleaned_FINAL(4-20-25)"  # 🖍️ Set this to your actual dataset
-freeze_layers=True
-Model_epoch = 10
-resume_from_checkpoint = False # 🔥 Toggle resume mode
+freeze_layers=False
+Model_epoch = 1
+resume_from_checkpoint = True # 🔥 Toggle resume mode
 checkpoint_dir = 'checkpoints_resnet/'  # 🔥 Checkpoint folder
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 # === START TRAINING ===
 def Resnet_train():
-    model_title = "Resnet50V2(NewSyn_" + str(date.today()) + ")_" + str(Model_epoch) + "e.keras"
+    model_title = "Resnet50V2(Resnet_GTSRB_Cleaned_FINAL_" + str(date.today()) + ")_" + str(Model_epoch) + "e.keras"
 
     train_dir = Dataset_home_dir + "/train"
     val_dir = Dataset_home_dir + "/test"
@@ -29,7 +29,7 @@ def Resnet_train():
     # === Data Generators ===
     train_datagen = ImageDataGenerator(
         dtype='float32',
-        preprocessing_function=tf.keras.applications.resnet_v2.preprocess_input,
+        preprocessing_function=tf.keras.applications.resnet.preprocess_input,
         rotation_range=15,
         width_shift_range=0.2,
         height_shift_range=0.2,
@@ -41,7 +41,7 @@ def Resnet_train():
 
     val_datagen = ImageDataGenerator(
         dtype='float32',
-        preprocessing_function=tf.keras.applications.resnet_v2.preprocess_input
+        preprocessing_function=tf.keras.applications.resnet.preprocess_input
     )
 
     train_dataset = train_datagen.flow_from_directory(
@@ -78,18 +78,18 @@ def Resnet_train():
             print("⚠️ No checkpoints found, starting from scratch.")
             latest_checkpoint = None
 
-    # if not latest_checkpoint:
-    #     base_model = ResNet50V2(weights="imagenet", include_top=False, input_shape=(img_size, img_size, 3))
-    #     for layer in base_model.layers[-20:]:  # 🔥 Last 20 layers trainable
-    #         layer.trainable = True
+    if not latest_checkpoint:
+        base_model = ResNet50(weights="imagenet", include_top=False, input_shape=(img_size, img_size, 3))
+        for layer in base_model.layers[-20:]:  # 🔥 Last 20 layers trainable
+            layer.trainable = True
 
-    #     x = base_model.output
-    #     x = GlobalAveragePooling2D()(x)
-    #     x = Dense(1024, activation='relu')(x)
-    #     predictions = Dense(train_dataset.num_classes, activation='softmax')(x)
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        x = Dense(1024, activation='relu')(x)
+        predictions = Dense(train_dataset.num_classes, activation='softmax')(x)
 
-    #     model = Model(inputs=base_model.input, outputs=predictions)
-    #     print(model.summary())
+        model = Model(inputs=base_model.input, outputs=predictions)
+        print(model.summary())
     
     
 
@@ -117,13 +117,14 @@ def Resnet_train():
         verbose=1
     )
     # 🚀 Load your frozen model manually
-    model_path = "Resnet50V2(NewSyn_2025-04-21)_15e.keras"
+    model_path = "Resnet50(Resnet_GTSRB_Cleaned_FINAL_2025-04-28)_15e.keras"
     print(f"🚀 Loading frozen model from: {model_path}")
     model = load_model(model_path)
 
+    train = not freeze_layers
     # 🔥 Unfreeze ALL layers for fine-tuning
     for layer in model.layers:
-        layer.trainable = True
+        layer.trainable = train
 
     print("✅ Model layers unfrozen for fine-tuning.")
     # === Compile model ===

@@ -14,8 +14,8 @@ import pandas as pd
 # ---------------- CONFIG ----------------
 IMAGE_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\images")
 LABEL_DIR = Path(r"D:\Documents\ZZ_Datasets\Synthetic_Cleaned_FINAL(4-21-25)\test\labels")
-RESNET_MODEL_PATH = Path("models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras")
-YOLO_MODEL_PATH = Path("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt")
+RESNET_MODEL_PATH = Path("Resnet50V2(NewSyn_2025-04-22)_1e.keras")
+YOLO_MODEL_PATH = Path("runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22/weights/best.pt")
 RESNET_INPUT_SIZE = 224
 CONFIDENCE_THRESHOLD = 0.65
 IOU_THRESHOLD = 0.5
@@ -119,18 +119,6 @@ print(true_labels)
 print("\n PREDICTED")
 print(predicted_labels)
 
-# ---------- PER-CLASS METRICS ----------
-print("\n📊 Per-Class Breakdown (Precision, Recall, F1-Score)")
-
-class_report = classification_report(true_labels, predicted_labels, output_dict=True, zero_division=0)
-class_df = pd.DataFrame(class_report).transpose()
-
-# Filter out only class IDs (exclude 'accuracy', 'macro avg', 'weighted avg')
-class_df = class_df[class_df.index.str.isdigit()]
-class_df.index = class_df.index.astype(int)
-class_df = class_df.sort_index()
-
-print(class_df[['precision', 'recall', 'f1-score', 'support']].round(2))
 
 # ---------- TOP MISCLASSIFICATIONS ----------
 print("\n❌ Top Misclassifications")
@@ -142,6 +130,31 @@ for true_idx in range(conf_matrix.shape[0]):
     for pred_idx in range(conf_matrix.shape[1]):
         if true_idx != pred_idx and conf_matrix[true_idx][pred_idx] > 0:
             misclass_counts.append(((true_idx, pred_idx), conf_matrix[true_idx][pred_idx]))
+            
+
+# ---------- PER-CLASS METRICS ----------
+print("\n📊 Per-Class Breakdown (Precision, Recall, F1-Score)")
+
+class_report = classification_report(true_labels, predicted_labels, output_dict=True, zero_division=0)
+class_df = pd.DataFrame(class_report).transpose()
+
+# Filter out only class IDs (exclude 'accuracy', 'macro avg', 'weighted avg')
+class_df = class_df[class_df.index.str.isdigit()]
+class_df.index = class_df.index.astype(int)
+class_df = class_df.sort_index()
+
+# Compute per-class accuracy from confusion matrix
+per_class_acc = {}
+for i in range(conf_matrix.shape[0]):
+    correct = conf_matrix[i, i]
+    total = conf_matrix[i].sum()
+    per_class_acc[i] = correct / total if total > 0 else 0.0
+
+# Add accuracy to class_df
+class_df['accuracy'] = class_df.index.map(per_class_acc)
+
+print(class_df[['precision', 'recall', 'f1-score', 'accuracy', 'support']].round(2))
+
 
 # Sort descending by count
 top_misclass = sorted(misclass_counts, key=lambda x: x[1], reverse=True)[:10]
@@ -158,5 +171,3 @@ print(f"Recall                  : {rec:.4f}")
 print(f"F1 Score                : {f1:.4f}")
 print(f"Average FPS             : {avg_fps:.2f}")
 print(f"Total Memory Usage      : {memory_mb:.2f} MB")
-
-

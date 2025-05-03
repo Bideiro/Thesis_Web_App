@@ -11,10 +11,14 @@ val_generator = val_datagen.flow_from_directory(
 
 from tensorflow.keras.models import load_model
 
-model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras')
+model = load_model('Resnet50V2(NewSyn_2025-04-22)_1e.keras')
 loss, accuracy, precision, recall = model.evaluate(val_generator)
+
+# Calculate F1 score
+f1_score = 2 * (precision * recall) / (precision + recall + 1e-7)  # small epsilon to avoid division by zero
+
 print(f"Loss: {loss:.4f}")
 print(f"Accuracy: {accuracy:.4f}")
 print(f"Precision: {precision:.4f}")
 print(f"Recall: {recall:.4f}")
-
+print(f"F1 Score: {f1_score:.4f}")

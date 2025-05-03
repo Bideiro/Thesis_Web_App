@@ -140,7 +140,6 @@ const Inference: React.FC = () => {
                         Enable Voice
                     </label>
                 </div>
-
                 <p className="h6 text-left mb-0">🟢 FPS: {fps}</p>
             </div>
 

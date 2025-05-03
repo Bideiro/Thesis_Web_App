@@ -4,6 +4,7 @@ import threading
 import cv2
 import numpy as np
 import os
+import easyocr
 from datetime import datetime
 import websockets
 import time
@@ -18,8 +19,8 @@ from tensorflow.keras.models import load_model # type: ignore
 from ultralytics import YOLO
 
 _Web = r"web"
-CONFIDENCE_YOLO = 0.8
-rn_conf = 80
+CONFIDENCE_YOLO = 0.7
+rn_conf = 70
 
 class_Name = [
     "All_traffic_Must_Turn_Left",
@@ -52,12 +53,13 @@ class_Name = [
     "Stop"
 ]
 
+reader = easyocr.Reader(['en'], gpu=True)
 
 # Load models
-ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-21)_15Fe+10UFe.keras')
-# YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10__2025-04-21/weights/best.pt')
-YOLO_model = YOLO('runs/detect/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22/weights/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22.pt')
+ResNet_model = load_model('models/Resnet50V2(NewSyn_2025-04-22)_1e.keras')
+YOLO_model = YOLO('models/YOLOv8s(Synthetic_Cleaned)_e10_30e_2025-04-22.pt')
 # Resnetqueue
+
 resnet_queue = queue.Queue()
 resnet_running = threading.Event()
 
@@ -88,7 +90,6 @@ def encode_jpg_file_to_base64(file_path):
     with open(file_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-
 # ResNet classification function
 def ResNet_Phase():
     global class_Name, stored_images, stored_results, resnet_results
@@ -116,6 +117,18 @@ def ResNet_Phase():
             if confidence >= rn_conf:
                 fn_conf = confidence
                 class_name = class_Name[class_id]
+                
+                
+                if class_name == "Speed_Limit":
+                    # Convert to OpenCV format
+                    cv_image = cv2.cvtColor(np.array(cropped), cv2.COLOR_RGB2BGR)
+
+                    # OCR to extract text
+                    results_ocr = reader.readtext(cv_image, detail=0, paragraph=False, allowlist='0123456789')
+                    if results_ocr:
+                        text = results_ocr[0]
+                        if text.isdigit():
+                            class_name = f"Speed_limit_{text}"
                 
                 image_filename = f"{class_name}.jpg".replace(' ', '_')
                 reference_image_path = os.path.join(reference_image_folder, image_filename)
@@ -204,7 +217,9 @@ async def Show_Cam(websocket):
         await asyncio.sleep(0.01)
 
 async def main():
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(1, cv2.CAP_DSHOW)
+    
+    cap.set(cv2.CAP_PROP_FPS, 60)
 
     if not cap.isOpened():
         print("Error: Could not open webcam.")
